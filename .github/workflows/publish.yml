@@ -1,0 +1,45 @@
+name: Publish
+on:
+  push:
+    branches:
+    - master
+    - theme
+    paths:
+    - '*'
+    - '!.github/workflows/*'
+    - '.github/workflows/publish.yml'
+jobs:
+  publish:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v1
+    - name: Build site
+      run: |
+        mkdir -p ../project/_posts
+        git checkout -b theme origin/theme
+        cp -r ./* ../project/
+        git checkout master
+        cp ./README.md ../project/
+        cp -r -n -v ./assets/* ../project/assets/
+        find . -type 'f' -name '*.md' ! -path './README.md' ! -path './.git/*' ! -path './.github/*' | xargs -I{} cp {} ../project/_posts/
+        cd ../project/_posts
+        sed -i 's/](\.\.\/assets\//]({{site.baseurl}}\/assets\//g' *.md
+        ls |xargs -I{} bash -c 'X={}; mv $X "${X%.md}.markdown"'
+        cd ..
+        docker pull kdada/jekyll-builder:base
+        docker run --rm -v $(pwd):/project kdada/jekyll-builder:base
+    - name: Commit site to gh-pages
+      run: |
+        git checkout -b ph-pages origin/gh-pages
+        find . -maxdepth 1 -type 'd' ! -path './.git' ! -path . | xargs rm -rf
+        cp -r ../project/_site/* ./
+        [[ -z $(git status -s) ]] && exit 0
+        git config --global user.email "me@imkira.com"
+        git config --global user.name "Wei Guo"
+        git add .
+        git commit -m "Update pages at $(TZ=Asia/Shanghai date --rfc-3339=seconds) for $(git rev-parse --short master)"
+    - name: Push gh-pages
+      run: |
+        AUTHORIZATION=$(echo -n "kdada:${{ secrets.GITHUB_TOKEN }}" | base64)
+        git -c http.extraheader="AUTHORIZATION: basic $AUTHORIZATION" push origin HEAD:gh-pages

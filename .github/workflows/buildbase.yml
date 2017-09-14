@@ -1,0 +1,31 @@
+name: BuildBase
+on:
+  push:
+    branches:
+    - master
+    - buildbase
+    - theme
+    paths:
+    - '.github/workflows/buildbase.yml'
+    - 'Gemfile'
+    - 'buildbase/*'
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v1
+    - name: Build the base image
+      run: |
+        mkdir ../buildbase
+        git checkout -b buildbase origin/buildbase
+        cp -r ./buildbase/* ../buildbase/
+        git checkout -b theme origin/theme
+        cp ./Gemfile ../buildbase/
+        cd ../buildbase/
+        docker build -t kdada/jekyll-builder:base .
+    - name: Push the base image
+      run: |
+        docker login -u kdada -p ${{ secrets.DOCKER_HUB_PASSWORD }}
+        docker push kdada/jekyll-builder:base
+
