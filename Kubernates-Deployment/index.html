@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Kubernates集群部署 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Kubernates集群部署" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="在虚拟机上部署 Kubernetes" property="og:description">
+  
+  
+    <meta content="/Kubernates-Deployment/" property="og:url">
+  
+  
+    <meta content="2016-09-30T21:03:17+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Kubernetes" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Kubernates集群部署">
+  
+  
+    <meta name="twitter:url" content="/Kubernates-Deployment/">
+  
+  
+    <meta name="twitter:description" content="在虚拟机上部署 Kubernetes">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="在虚拟机上部署 Kubernetes">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Kubernates集群部署</h1>
+        <div class="page-date"><span>2016, Sep 30&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="kubernetes结构图">kubernetes结构图</h4>
+<p><img src="/imkira.com/assets/img/kube-arch.png" alt="kubernetes" /><br />
+（注：图片来自于infoq.com）</p>
+<h4 id="软件环境">软件环境：</h4>
+<ol>
+  <li>centos 7 （Linux 3.10）</li>
+  <li>docker 1.12.1</li>
+  <li>kubernetes  1.3.7</li>
+  <li>flannel 0.5.3</li>
+  <li>etcd 2.3.7</li>
+</ol>
+
+<h4 id="硬件环境">硬件环境：</h4>
+<ol>
+  <li>master 一台centos7服务器(10.0.0.50)</li>
+  <li>minion 两台centos7服务器(10.0.0.51，10.0.0.52)</li>
+</ol>
+
+<h4 id="安装说明">安装说明：</h4>
+<p>docker负责容器管理<br />
+kubernetes负责集群管理<br />
+flannel负责承载集群网络，实现所有minion上的所有container之间的网络互通<br />
+etcd负责存储kubernetes和flannel的数据</p>
+
+<p>为了避免ip设置，使用以下域名：<br />
+etcd.local 指向etcd数据库<br />
+master.local 指向kubernetes的master服务器<br />
+dns.local 指向kubedns的服务器<br />
+hub.local 指向docker私有源的服务器</p>
+
+<h4 id="1在master和minion上安装docker">1.在master和minion上安装Docker</h4>
+<p>在yum中添加Docker源：/etc/yum.repos.d/docker.repo</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>dockerrepo]
+<span class="nv">name</span><span class="o">=</span>Docker Repository
+<span class="nv">baseurl</span><span class="o">=</span>https://yum.dockerproject.org/repo/main/centos/7/
+<span class="nv">enabled</span><span class="o">=</span>1
+<span class="nv">gpgcheck</span><span class="o">=</span>1
+<span class="nv">gpgkey</span><span class="o">=</span>https://yum.dockerproject.org/gpg
+</code></pre></div></div>
+<p>安装Docker：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nb">install </span>docker-engine
+</code></pre></div></div>
+
+<h4 id="2在master上安装etcd--在minion上安装flannel">2.在master上安装etcd &amp;&amp; 在minion上安装flannel</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#只需要在master上安装</span>
+yum <span class="nb">install </span>etcd
+<span class="c">#只需要在minion上安装</span>
+yum <span class="nb">install </span>flannel
+</code></pre></div></div>
+
+<h4 id="3安装kubernetes">3.安装kubernetes</h4>
+<p>下载kubernetes.tar.gz ：<a href="https://github.com/kubernetes/kubernetes/releases">https://github.com/kubernetes/kubernetes/releases</a>  <br />
+kubernetes.tar.gz 中包含了已经编译过的二进制文件，找到其中适用于linux的hypercube和kube-dns<br />
+将hypercube复制到所有服务器的/usr/local/bin中<br />
+将kube-dns复制到master的/usr/local/bin</p>
+
+<h4 id="4在master上安装docker私有源">4.在master上安装Docker私有源</h4>
+<p>下载docker私有源镜像：[https://hub.docker.com/<em>/registry/](https://hub.docker.com/</em>/registry/)<br />
+下载pause镜像：<a href="https://hub.docker.com/r/google/pause/">https://hub.docker.com/r/google/pause/</a></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker pull registry
+docker pull google/pause
+</code></pre></div></div>
+<p>由于Docker pull镜像需要使用https，因此先创建证书：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>certs
+<span class="nb">cd </span>certs
+openssl genrsa <span class="nt">-out</span> private.pem 2048
+openssl req <span class="nt">-new</span> <span class="nt">-x509</span> <span class="nt">-key</span> private.pem <span class="nt">-out</span> cert.pem <span class="nt">-days</span> 36500
+<span class="nb">cd</span> ..
+</code></pre></div></div>
+<p>启动私有源镜像：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker run <span class="nt">-d</span> <span class="nt">-p</span> 443:5000 <span class="nt">--restart</span><span class="o">=</span>always <span class="se">\</span>
+<span class="nt">-v</span> <span class="si">$(</span><span class="nb">pwd</span><span class="si">)</span>/repo:/var/lib/registry <span class="se">\</span>
+<span class="nt">-v</span> <span class="si">$(</span><span class="nb">pwd</span><span class="si">)</span>/auth:/auth <span class="se">\</span>
+<span class="nt">-v</span> <span class="si">$(</span><span class="nb">pwd</span><span class="si">)</span>/certs:/certs <span class="se">\</span>
+<span class="nt">-e</span> <span class="nv">REGISTRY_HTTP_SECRET</span><span class="o">=</span>1234567890 <span class="se">\</span>
+<span class="nt">-e</span> <span class="nv">REGISTRY_HTTP_TLS_CERTIFICATE</span><span class="o">=</span>/certs/cert.pem <span class="se">\</span>
+<span class="nt">-e</span> <span class="nv">REGISTRY_HTTP_TLS_KEY</span><span class="o">=</span>/certs/private.pem <span class="se">\</span>
+registry
+</code></pre></div></div>
+<p>其中使用私有源默认监听5000端口，为了方便使用域名直接访问，在此处映射到host的443端口上。<br />
+将google/pause镜像上传到私有源中：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker tag google/pause hub.local/pause
+<span class="c">#push失败则按第5步中说明先添加证书到信任列表</span>
+docker push hub.local/pause
+</code></pre></div></div>
+<p>google/pause是kubernetes需要的基本镜像，kubernetes在启动一个pod时，会先运行pause镜像，然后将pod定义的其他容器挂到pause上，以使用相同的ip。</p>
+
+<h4 id="5配置master和minion服务器">5.配置master和minion服务器</h4>
+<p>将cert.pem导入到master和minion服务器的证书信任列表中：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cat </span>cert.pem <span class="o">&gt;&gt;</span> /etc/pki/tls/certs/ca-bundle.crt
+</code></pre></div></div>
+<p>修改master和minion服务器的/etc/hosts文件，导入域名并指向master的ip：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo </span>10.0.0.50 etcd.local <span class="o">&gt;&gt;</span> /etc/hosts
+<span class="nb">echo </span>10.0.0.50 master.local <span class="o">&gt;&gt;</span> /etc/hosts
+<span class="nb">echo </span>10.0.0.50 dns.local <span class="o">&gt;&gt;</span> /etc/hosts
+<span class="nb">echo </span>10.0.0.50 hub.local <span class="o">&gt;&gt;</span> /etc/hosts
+</code></pre></div></div>
+
+<h4 id="6在master上启动etcd">6.在master上启动etcd</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>service etcd start
+</code></pre></div></div>
+<p>添加flannel要使用的子网的key</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>etcdctl mk /flannel/network/config <span class="s1">'{"Network":"10.254.0.0/16"}'</span>
+</code></pre></div></div>
+
+<h4 id="7在minion上启动flannel和dockerd">7.在minion上启动flannel和dockerd</h4>
+<p>在所有的minion上执行：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>flanneld <span class="nt">-etcd-endpoints</span><span class="o">=</span>http://etcd.local:2379 <span class="nt">-etcd-prefix</span><span class="o">=</span>/flannel/network
+</code></pre></div></div>
+<p>此时启动了flanneld，flanneld会从http://etcd.local:2379指向的etcd数据库中找到/flannel/network的key，然后根据Network指定的子网分配当前host可用的子网，并将分配到的子网信息存储在host的/run/flannel/docker文件中。<br />
+子网分配成功后，即可启动dockerd</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#使用/run/flannel/docker中定义的全局变量来启动</span>
+<span class="nb">source</span> /run/flannel/docker
+dockerd <span class="k">${</span><span class="nv">DOCKER_NETWORK_OPTIONS</span><span class="k">}</span>
+</code></pre></div></div>
+
+<h4 id="8启动master上的kubernetes服务">8.启动master上的kubernetes服务</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#启动api服务</span>
+hyperkube apiserver <span class="nt">--etcd-servers</span><span class="o">=</span>http://etcd.local:2379 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">true</span> <span class="se">\</span>
+ <span class="nt">--v</span><span class="o">=</span>0 <span class="se">\</span>
+ <span class="nt">--allow-privileged</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--insecure-bind-address</span><span class="o">=</span>0.0.0.0 <span class="se">\</span>
+ <span class="nt">--insecure-port</span><span class="o">=</span>8080 <span class="se">\</span>
+ <span class="nt">--service-cluster-ip-range</span><span class="o">=</span>10.254.0.0/16 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/apiserver/&amp;
+
+<span class="c">#启动控制器管理器</span>
+hyperkube controller-manager <span class="nt">--master</span><span class="o">=</span>http://master.local:8080 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/controllermanager/&amp;
+
+<span class="c">#启动调度器</span>
+hyperkube scheduler <span class="nt">--master</span><span class="o">=</span>http://master.local:8080 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/scheduler/&amp;
+
+<span class="c">#启动dns，minion设置该dns后在pod中就可以使用服务域名来访问相应的服务</span>
+kube-dns <span class="nt">--domain</span><span class="o">=</span>kube.local <span class="nt">--kube-master-url</span><span class="o">=</span>http://master.local:8080 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/dns/ &amp;
+
+</code></pre></div></div>
+
+<h4 id="9启动minion上的kubernetes服务">9.启动minion上的kubernetes服务</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#启动kubelet</span>
+hyperkube kubelet <span class="nt">--address</span><span class="o">=</span>0.0.0.0 <span class="se">\</span>
+ <span class="nt">--port</span><span class="o">=</span>10250 <span class="se">\</span>
+ <span class="nt">--hostname-override</span><span class="o">=</span>10.0.0.51 <span class="se">\</span>
+ <span class="nt">--api-servers</span><span class="o">=</span>http://master.local:8080 <span class="se">\</span>
+ <span class="nt">--cluster-dns</span><span class="o">=</span>dns.local <span class="se">\</span>
+ <span class="nt">--cluster-domain</span><span class="o">=</span>kube.local <span class="se">\</span>
+ <span class="nt">--pod-infra-container-image</span><span class="o">=</span>hub.local/pause <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/kubelet/ &amp;
+
+
+<span class="c">#启动proxy</span>
+hyperkube proxy <span class="nt">--master</span><span class="o">=</span>http://master.local:8080 <span class="se">\</span>
+ <span class="nt">--logtostderr</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+ <span class="nt">--log-dir</span><span class="o">=</span>/root/logs/proxy/ &amp;
+</code></pre></div></div>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Kubernates集群部署&url=/Kubernates-Deployment/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Kubernates-Deployment/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Kubernates-Deployment/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>
