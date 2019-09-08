@@ -1,0 +1,25 @@
+title: Kira's Blog
+description: >
+  Author of Nirvana API Framewark. Focus on CloudNative technologies (Kubernetes, Prometheus, Serverless, ServiceMesh and etc).
+permalink: ':title/'
+baseurl: "/imkira.com"
+url: ""
+
+# Author Settings
+author: Wei Guo
+author-img: avatar.jpg
+about-author: Author of Nirvana API Framewark. Focus on CloudNative technologies.
+social-github: kdada
+social-email: me@imkira.com
+
+# Build Settings
+markdown: kramdown
+plugins:
+  - jekyll-sitemap
+  - jekyll-paginate
+  - jemoji
+
+paginate: 8
+paginate_path: "/page/:num"
+
+exclude: ["node_modules", "gulpfile.js", "package.json", "yarn.lock", "buildbase"]
