@@ -4,7 +4,7 @@ ROOT_PATH=$(dirname $(bash -c "cd $(dirname ${BASH_SOURCE[0]}) >/dev/null 2>&1 &
 
 cd $ROOT_PATH
 
-DIRS=$(find . -maxdepth 1 -type 'd' ! -path './.git' ! -path './.github' ! -path './hack' ! -path './assets' ! -path '.')
+DIRS=$(find . -maxdepth 1 -type 'd' ! -path './.git' ! -path './.github' ! -path './hack' ! -path './assets' ! -path '.' | sort)
 
 
 function clean() {
