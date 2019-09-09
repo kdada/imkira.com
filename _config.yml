@@ -2,8 +2,8 @@ title: Kira's Blog
 description: >
   Author of Nirvana API Framewark. Focus on CloudNative technologies (Kubernetes, Prometheus, Serverless, ServiceMesh and etc).
 permalink: ':title/'
-baseurl: "/imkira.com"
-url: ""
+baseurl: ""
+url: "https://imkira.com"
 
 # Author Settings
 author: Wei Guo
