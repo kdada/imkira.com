@@ -28,7 +28,7 @@ do
     echo "  $FILE"
     FILE_PATH="$DIR/$FILE"
 	TITLE=$(cat $FILE_PATH | grep -oP '(?<=title: ).*$')
-    write "[$TITLE]($FILE_PATH)"
+    write "- [$TITLE]($FILE_PATH)"
   done
   write ""
 done
