@@ -17,14 +17,14 @@
     <meta content="在 Centos 中编译 openwrt 固件" property="og:description">
   
   
-    <meta content="/CentOS-OpenWrt/" property="og:url">
+    <meta content="http://imkira.com/CentOS-OpenWrt/" property="og:url">
   
   
     <meta content="2017-02-17T19:09:23+00:00" property="article:published_time">
-    <meta content="/about/" property="article:author">
+    <meta content="http://imkira.com/about/" property="article:author">
   
   
-    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+    <meta content="http://imkira.com/assets/img/avatar.jpg" property="og:image">
   
   
     
@@ -44,23 +44,23 @@
     <meta name="twitter:title" content="在 Centos 中编译 openwrt 固件">
   
   
-    <meta name="twitter:url" content="/CentOS-OpenWrt/">
+    <meta name="twitter:url" content="http://imkira.com/CentOS-OpenWrt/">
   
   
     <meta name="twitter:description" content="在 Centos 中编译 openwrt 固件">
   
   
-    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+    <meta name="twitter:image:src" content="http://imkira.com/assets/img/avatar.jpg">
   
 
 	<meta name="description" content="在 Centos 中编译 openwrt 固件">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	<meta property="og:image" content="">
-	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
-	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
-	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
-	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicon/apple-touch-icon-144x144.png">
 	<!-- Chrome, Firefox OS and Opera -->
 	<meta name="theme-color" content="#263959">
 	<!-- Windows Phone -->
@@ -71,9 +71,9 @@
 	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
 	<!-- Font Awesome -->
-	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/assets/fonts/font-awesome/css/font-awesome.min.css">
 	<!-- Styles -->
-	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+	<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 
 <body>
@@ -83,7 +83,7 @@
   <header>
     <div class="about">
       <div class="cover-author-image">
-        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+        <a href="/"><img src="/assets/img/avatar.jpg" alt="Wei Guo"></a>
       </div>
       <div class="author-name">Wei Guo</div>
       <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
@@ -166,11 +166,11 @@ git checkout -b build v15.05.1
   <li>NETGEAR WNDR3700v4/WNDR4300</li>
 </ul>
 
-<p><img src="/imkira.com/assets/img/openwrt-basic-conf.png" alt="基本配置" /></p>
+<p><img src="/assets/img/openwrt-basic-conf.png" alt="基本配置" /></p>
 
 <p>开启 Advanced configuration options (for developer) 中的 Target Options:</p>
 
-<p><img src="/imkira.com/assets/img/openwrt-float-conf.png" alt="浮点配置" /></p>
+<p><img src="/assets/img/openwrt-float-conf.png" alt="浮点配置" /></p>
 
 <p>开启该选项后，该选项的子选项 Use software floating point by default 也会被打开。</p>
 
@@ -180,7 +180,7 @@ git checkout -b build v15.05.1
 # 开启 Kernel Type -&gt; MIPS FPU Emulator
 make kernel_menuconfig
 </code></pre></div>    </div>
-    <p><img src="/imkira.com/assets/img/openwrt-fpu-conf.png" alt="FPU 模拟" /></p>
+    <p><img src="/assets/img/openwrt-fpu-conf.png" alt="FPU 模拟" /></p>
   </li>
 </ul>
 
@@ -190,7 +190,7 @@ make kernel_menuconfig
 make -j8
 </code></pre></div>    </div>
     <p>编译需要一定的时间，编译完成后即可在 <strong>openwrt/bin/ar71xx</strong> 目录中找到相应的镜像文件：
-<img src="/imkira.com/assets/img/openwrt-image.png" alt="镜像" />
+<img src="/assets/img/openwrt-image.png" alt="镜像" />
 其中 <strong>openwrt-ar71xx-nand-wndr4300-ubi-factory.img</strong> 是首次刷机使用的镜像，<strong>openwrt-ar71xx-nand-wndr4300-squashfs-sysupgrade.tar</strong> 是已刷机的路由器使用的升级镜像。</p>
   </li>
 </ol>
@@ -235,15 +235,15 @@ opkg install luci-i18n-base-zh-cn
 
       <div class="page-footer">
         <div class="page-share">
-          <a href="https://twitter.com/intent/tweet?text=在 Centos 中编译 openwrt 固件&url=/CentOS-OpenWrt/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
-          <a href="https://facebook.com/sharer.php?u=/CentOS-OpenWrt/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
-          <a href="https://plus.google.com/share?url=/CentOS-OpenWrt/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+          <a href="https://twitter.com/intent/tweet?text=在 Centos 中编译 openwrt 固件&url=http://imkira.com/CentOS-OpenWrt/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=http://imkira.com/CentOS-OpenWrt/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=http://imkira.com/CentOS-OpenWrt/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
         </div>
         <div class="page-tag">
           
-            <a href="/imkira.com/tags#Linux" class="tag">&#35; Linux</a>
+            <a href="/tags#Linux" class="tag">&#35; Linux</a>
           
-            <a href="/imkira.com/tags#OpenWrt" class="tag">&#35; OpenWrt</a>
+            <a href="/tags#OpenWrt" class="tag">&#35; OpenWrt</a>
           
         </div>
       </div>

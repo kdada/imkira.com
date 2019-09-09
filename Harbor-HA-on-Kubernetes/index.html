@@ -17,14 +17,14 @@
     <meta content="Harbor on Kubernetes 高可用方案分享" property="og:description">
   
   
-    <meta content="/Harbor-HA-on-Kubernetes/" property="og:url">
+    <meta content="http://imkira.com/Harbor-HA-on-Kubernetes/" property="og:url">
   
   
     <meta content="2016-11-16T03:53:04+00:00" property="article:published_time">
-    <meta content="/about/" property="article:author">
+    <meta content="http://imkira.com/about/" property="article:author">
   
   
-    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+    <meta content="http://imkira.com/assets/img/avatar.jpg" property="og:image">
   
   
     
@@ -44,23 +44,23 @@
     <meta name="twitter:title" content="Harbor on Kubernetes 高可用方案">
   
   
-    <meta name="twitter:url" content="/Harbor-HA-on-Kubernetes/">
+    <meta name="twitter:url" content="http://imkira.com/Harbor-HA-on-Kubernetes/">
   
   
     <meta name="twitter:description" content="Harbor on Kubernetes 高可用方案分享">
   
   
-    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+    <meta name="twitter:image:src" content="http://imkira.com/assets/img/avatar.jpg">
   
 
 	<meta name="description" content="Harbor on Kubernetes 高可用方案分享">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	<meta property="og:image" content="">
-	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
-	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
-	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
-	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicon/apple-touch-icon-144x144.png">
 	<!-- Chrome, Firefox OS and Opera -->
 	<meta name="theme-color" content="#263959">
 	<!-- Windows Phone -->
@@ -71,9 +71,9 @@
 	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
 	<!-- Font Awesome -->
-	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/assets/fonts/font-awesome/css/font-awesome.min.css">
 	<!-- Styles -->
-	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+	<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 
 <body>
@@ -83,7 +83,7 @@
   <header>
     <div class="about">
       <div class="cover-author-image">
-        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+        <a href="/"><img src="/assets/img/avatar.jpg" alt="Wei Guo"></a>
       </div>
       <div class="author-name">Wei Guo</div>
       <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
@@ -126,7 +126,7 @@
         <div class="page-date"><span>2016, Nov 16&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
       </header>
       <h4 id="harbor-基本架构">Harbor 基本架构</h4>
-<p><img src="/imkira.com/assets/img/harbor-ha-arch.png" alt="架构" /></p>
+<p><img src="/assets/img/harbor-ha-arch.png" alt="架构" /></p>
 
 <p>Harbor 各个组件的用处：</p>
 <ul>
@@ -150,27 +150,27 @@ Jobservice 负责同步镜像，目前还不支持多实例并行同步。因此
 即 3Nginx+3UI+3Registry+3Mysql+1Jobservice 模式。</p>
 
 <p>（1）Galera 集群 + 共享存储 + 独立模式
-<img src="/imkira.com/assets/img/harbor-ha-singleton.png" alt="独立模式" /></p>
+<img src="/assets/img/harbor-ha-singleton.png" alt="独立模式" /></p>
 
 <p>在该方案中，3 个 Harbor 实例的 Registry 共享一个底层存储。这个存储可以是 NFS 或者其它分布式文件系统。
 而 Mysql 由于不能共享存储，因此使用 Galera 多主集群实现数据同步。</p>
 
 <p>（2）Galera 集群 + 共享存储 + 备份模式
-<img src="/imkira.com/assets/img/harbor-ha-backup.png" alt="备份模式" /></p>
+<img src="/assets/img/harbor-ha-backup.png" alt="备份模式" /></p>
 
 <p>在该方案中，依然使用 Galera 集群和共享存储，但是各个组件相互独立，每个组件都有几个备份，通过负载均衡实现高可用（使用 Kubernetes Service 非常容易实现 LB）。</p>
 
       <div class="page-footer">
         <div class="page-share">
-          <a href="https://twitter.com/intent/tweet?text=Harbor on Kubernetes 高可用方案&url=/Harbor-HA-on-Kubernetes/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
-          <a href="https://facebook.com/sharer.php?u=/Harbor-HA-on-Kubernetes/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
-          <a href="https://plus.google.com/share?url=/Harbor-HA-on-Kubernetes/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+          <a href="https://twitter.com/intent/tweet?text=Harbor on Kubernetes 高可用方案&url=http://imkira.com/Harbor-HA-on-Kubernetes/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=http://imkira.com/Harbor-HA-on-Kubernetes/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=http://imkira.com/Harbor-HA-on-Kubernetes/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
         </div>
         <div class="page-tag">
           
-            <a href="/imkira.com/tags#Harbor" class="tag">&#35; Harbor</a>
+            <a href="/tags#Harbor" class="tag">&#35; Harbor</a>
           
-            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+            <a href="/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
           
         </div>
       </div>
