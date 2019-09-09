@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Harbor on Kubernetes 高可用方案 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Harbor on Kubernetes 高可用方案" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Harbor on Kubernetes 高可用方案分享" property="og:description">
+  
+  
+    <meta content="/Harbor-HA-on-Kubernetes/" property="og:url">
+  
+  
+    <meta content="2016-11-16T03:53:04+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Harbor" property="article:tag">
+    
+    <meta content="Kubernetes" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Harbor on Kubernetes 高可用方案">
+  
+  
+    <meta name="twitter:url" content="/Harbor-HA-on-Kubernetes/">
+  
+  
+    <meta name="twitter:description" content="Harbor on Kubernetes 高可用方案分享">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Harbor on Kubernetes 高可用方案分享">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Harbor on Kubernetes 高可用方案</h1>
+        <div class="page-date"><span>2016, Nov 16&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="harbor-基本架构">Harbor 基本架构</h4>
+<p><img src="/imkira.com/assets/img/harbor-ha-arch.png" alt="架构" /></p>
+
+<p>Harbor 各个组件的用处：</p>
+<ul>
+  <li>Nginx：负责请求转发。以 / v2 / 开始的 path 会被转发到 Registry 中，其它请求由 ui 处理</li>
+  <li>UI：Harbor 的主体，提供 Web UI 和 RESTful API</li>
+  <li>Jobservice：提供多个 Harbor 实例之间的镜像同步功能</li>
+  <li>Registry：Docker 镜像仓库</li>
+  <li>Mysql：存储 UI 和 Jobservice 所需要的数据</li>
+</ul>
+
+<p>Harbor 组件关系：<br />
+（1）Nginx 负责提供 Harbor 实例的入口，所有请求由 Nginx 转发给 UI 和 Registry<br />
+（2）Registry 需要 Authorization（JWT），该 Token 由 UI 生成，同时 UI 的部分 API 需要调用 Registry 的 API<br />
+（3）用户可以通过 UI 创建同步任务，将镜像从当前 Harbor 实例复制到其它 Harbor 实例。UI 只创建任务，Jobservice 负责执行任务<br />
+（4）Jobservice 在同步过程中需要使用 Registry 的 API 获取镜像的 Manifest 和 Blob
+（5）UI 和 Jobservice 的数据均存储于 Mysql 中</p>
+
+<h4 id="harbor-高可用方案">Harbor 高可用方案</h4>
+<p>为了保证整个 Harbor 实例的高可用，除 Jobservice 以外的组件均扩展为 3 个。<br />
+Jobservice 负责同步镜像，目前还不支持多实例并行同步。因此在方案中只能使用一个。<br />
+即 3Nginx+3UI+3Registry+3Mysql+1Jobservice 模式。</p>
+
+<p>（1）Galera 集群 + 共享存储 + 独立模式
+<img src="/imkira.com/assets/img/harbor-ha-singleton.png" alt="独立模式" /></p>
+
+<p>在该方案中，3 个 Harbor 实例的 Registry 共享一个底层存储。这个存储可以是 NFS 或者其它分布式文件系统。
+而 Mysql 由于不能共享存储，因此使用 Galera 多主集群实现数据同步。</p>
+
+<p>（2）Galera 集群 + 共享存储 + 备份模式
+<img src="/imkira.com/assets/img/harbor-ha-backup.png" alt="备份模式" /></p>
+
+<p>在该方案中，依然使用 Galera 集群和共享存储，但是各个组件相互独立，每个组件都有几个备份，通过负载均衡实现高可用（使用 Kubernetes Service 非常容易实现 LB）。</p>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Harbor on Kubernetes 高可用方案&url=/Harbor-HA-on-Kubernetes/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Harbor-HA-on-Kubernetes/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Harbor-HA-on-Kubernetes/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Harbor" class="tag">&#35; Harbor</a>
+          
+            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

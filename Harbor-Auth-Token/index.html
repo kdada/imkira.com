@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Harbor Auth Token 分析 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Harbor Auth Token 分析" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Harbor Auth Token 源码分析" property="og:description">
+  
+  
+    <meta content="/Harbor-Auth-Token/" property="og:url">
+  
+  
+    <meta content="2016-10-24T03:19:52+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Docker" property="article:tag">
+    
+    <meta content="Harbor" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Harbor Auth Token 分析">
+  
+  
+    <meta name="twitter:url" content="/Harbor-Auth-Token/">
+  
+  
+    <meta name="twitter:description" content="Harbor Auth Token 源码分析">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Harbor Auth Token 源码分析">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Harbor Auth Token 分析</h1>
+        <div class="page-date"><span>2016, Oct 24&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="分析环境">分析环境：</h4>
+<p>harbor：https://github.com/vmware/harbor<br />
+Tags：0.4.1</p>
+
+<h4 id="1docker-鉴权请求分析">1.docker 鉴权请求分析</h4>
+<p>1.docker 直接 pull public repo，请求格式如下：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/service/token?scope=repository:test/repo:pull&amp;service=token-service
+</code></pre></div></div>
+
+<p>2.docker pull private repo，请求格式如下：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/service/token?account=test&amp;scope=repository:test/repo:push,pull&amp;service=token-service
+</code></pre></div></div>
+<p>除此之外，对 private repo 的请求还会在 Request Header 中加入 Authorization
+HTTP Basic Authentication 格式如下：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>//account:password
+Basic YWNjb3VudDpwYXNzd29yZA==
+</code></pre></div></div>
+<p>两个请求共有的部分如下：<br />
+scope：指定类型（repository），repo（test/repo），请求的操作权限（pull &amp;&amp; push）<br />
+service：即 JWT 验证中的 Audience，Token 接收方（即 registry）</p>
+
+<h4 id="2harbor-权限获取源码分析">2.Harbor 权限获取源码分析</h4>
+<p>Harbor 路由：/service/token（/service/token/token.go#39）</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// Get 处理获取 Token 的请求</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span><span class="n">Handler</span><span class="p">)</span> <span class="n">Get</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="k">var</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span> <span class="kt">string</span>
+    <span class="n">request</span> <span class="o">:=</span> <span class="n">h</span><span class="o">.</span><span class="n">Ctx</span><span class="o">.</span><span class="n">Request</span>
+    <span class="c">// 获取 JWT 接收方名称</span>
+    <span class="n">service</span> <span class="o">:=</span> <span class="n">h</span><span class="o">.</span><span class="n">GetString</span><span class="p">(</span><span class="s">"service"</span><span class="p">)</span>
+    <span class="c">// 获取 scopes</span>
+    <span class="n">scopes</span> <span class="o">:=</span> <span class="n">h</span><span class="o">.</span><span class="n">GetStrings</span><span class="p">(</span><span class="s">"scope"</span><span class="p">)</span>
+    <span class="c">// 根据 scopes 生成 ResourceActions 数组, 该结构体的定义位于 github.com/docker/distribution/registry/auth/token/token.go#32</span>
+    <span class="c">//type ResourceActions struct {</span>
+    <span class="c">//  Type    string   `json:"type"`// 资源类型, 此处为 repository</span>
+    <span class="c">//  Name    string   `json:"name"`// 资源名称, 即 repo 名称</span>
+    <span class="c">//  Actions []string `json:"actions"`// 资源可用权限数组, 即 pull,push</span>
+    <span class="c">//}</span>
+    <span class="n">access</span> <span class="o">:=</span> <span class="n">GetResourceActions</span><span class="p">(</span><span class="n">scopes</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">Infof</span><span class="p">(</span><span class="s">"request url: %v"</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">URL</span><span class="o">.</span><span class="n">String</span><span class="p">())</span>
+
+    <span class="c">// 验证 Request 的 Cookie 中是否包含 uisecret, 其值为 Harbor 预定义的密钥</span>
+    <span class="c">// 该密钥在环境变量 UI_SECRET 中定义, 使用该密钥可以获得任意权限, 仅在 Harbor 的 Job Service 中使用</span>
+    <span class="k">if</span> <span class="n">svc_utils</span><span class="o">.</span><span class="n">VerifySecret</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">Debugf</span><span class="p">(</span><span class="s">"Will grant all access as this request is from job service with legal secret."</span><span class="p">)</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="s">"job-service-user"</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="c">// 从 HTTP Basic Authentication 中获取用户名密码</span>
+        <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">BasicAuth</span><span class="p">()</span>
+        <span class="c">// 验证用户名密码是否正确</span>
+        <span class="n">authenticated</span> <span class="o">:=</span> <span class="n">authenticate</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="c">// 如果 scopes 为空并且用户不存在则直接终止请求</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scopes</span><span class="p">)</span> <span class="o">==</span> <span class="m">0</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">authenticated</span> <span class="p">{</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">Info</span><span class="p">(</span><span class="s">"login request with invalid credentials"</span><span class="p">)</span>
+            <span class="n">h</span><span class="o">.</span><span class="n">CustomAbort</span><span class="p">(</span><span class="n">http</span><span class="o">.</span><span class="n">StatusUnauthorized</span><span class="p">,</span> <span class="s">""</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="c">// 对用户请求的权限进行过滤, 确保用户不能获得不属于自身的权限</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">access</span> <span class="p">{</span>
+            <span class="n">FilterAccess</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">authenticated</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="c">// 根据用户名, 接收方名称, 可用权限生成 JWT</span>
+    <span class="n">h</span><span class="o">.</span><span class="n">serveToken</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">access</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>FilterAccess 过滤方法：/service/token/authutils.go#99</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// FilterAccess 过滤用户请求的权限</span>
+<span class="k">func</span> <span class="n">FilterAccess</span><span class="p">(</span><span class="n">username</span> <span class="kt">string</span><span class="p">,</span> <span class="n">authenticated</span> <span class="kt">bool</span><span class="p">,</span> <span class="n">a</span> <span class="o">*</span><span class="n">token</span><span class="o">.</span><span class="n">ResourceActions</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 对于 registry 类型并且名为 catalog 的请求不进行任何过滤</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="s">"registry"</span> <span class="o">&amp;&amp;</span> <span class="n">a</span><span class="o">.</span><span class="n">Name</span> <span class="o">==</span> <span class="s">"catalog"</span> <span class="p">{</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">Infof</span><span class="p">(</span><span class="s">"current access, type: %s, name:%s, actions:%v </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Type</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Actions</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+
+    <span class="c">// 直接对 Actions 重新赋值, 无视用户请求的权限</span>
+    <span class="n">a</span><span class="o">.</span><span class="n">Actions</span> <span class="o">=</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{}</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="s">"repository"</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="n">strings</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="s">"/"</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c">//Harbor 目前不允许创建带有 / 的 project,projectName 为 a.Name 到最后一个 / 之间的字符串</span>
+            <span class="c">// 因此 Harbor 中, 只能识别类似 test/repo 的两级 repo</span>
+            <span class="c">// 对于非 2 级的 repo 名称全部无法 push 和 pull</span>
+            <span class="c">// 例如 repo  test/xxx/repo 都是无效的 (虽然 docker 允许创建这种 Tag)</span>
+            <span class="n">projectName</span> <span class="o">:=</span> <span class="n">a</span><span class="o">.</span><span class="n">Name</span><span class="p">[</span><span class="m">0</span><span class="o">:</span><span class="n">strings</span><span class="o">.</span><span class="n">LastIndex</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="s">"/"</span><span class="p">)]</span>
+            <span class="k">var</span> <span class="n">permission</span> <span class="kt">string</span>
+            <span class="k">if</span> <span class="n">authenticated</span> <span class="p">{</span>
+                <span class="n">isAdmin</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">dao</span><span class="o">.</span><span class="n">IsAdminRole</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error occurred in IsAdminRole: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                <span class="p">}</span>
+                <span class="k">if</span> <span class="n">isAdmin</span> <span class="p">{</span>
+                    <span class="n">exist</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">dao</span><span class="o">.</span><span class="n">ProjectExists</span><span class="p">(</span><span class="n">projectName</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error occurred in CheckExistProject: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                        <span class="k">return</span>
+                    <span class="p">}</span>
+                    <span class="k">if</span> <span class="n">exist</span> <span class="p">{</span>
+                        <span class="c">//Admin 对于任何存在的项目都拥有所有权限</span>
+                        <span class="n">permission</span> <span class="o">=</span> <span class="s">"RWM"</span>
+                    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">permission</span> <span class="o">=</span> <span class="s">""</span><span class="n">log</span><span class="o">.</span><span class="n">Infof</span><span class="p">(</span><span class="s">"project %s does not exist, set empty permission for admin</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">projectName</span><span class="p">)</span>
+                    <span class="p">}</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="c">// 普通用户根据用户在项目中的 Role 获得不同的权限</span>
+                    <span class="c">//projectAdmin MDRWS</span>
+                    <span class="c">//developer RWS</span>
+                    <span class="c">//guest RS</span>
+                    <span class="n">permission</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">dao</span><span class="o">.</span><span class="n">GetPermission</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">projectName</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error occurred in GetPermission: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                        <span class="k">return</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="c">//push 权限</span>
+            <span class="k">if</span> <span class="n">strings</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">permission</span><span class="p">,</span> <span class="s">"W"</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">Actions</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Actions</span><span class="p">,</span> <span class="s">"push"</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="c">// 管理权限</span>
+            <span class="k">if</span> <span class="n">strings</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">permission</span><span class="p">,</span> <span class="s">"M"</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">Actions</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Actions</span><span class="p">,</span> <span class="s">"*"</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="c">//pull 权限, 权限中包含 R 或者该 project 为 public 的</span>
+            <span class="k">if</span> <span class="n">strings</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">permission</span><span class="p">,</span> <span class="s">"R"</span><span class="p">)</span> <span class="o">||</span> <span class="n">dao</span><span class="o">.</span><span class="n">IsProjectPublic</span><span class="p">(</span><span class="n">projectName</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">Actions</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Actions</span><span class="p">,</span> <span class="s">"pull"</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">Infof</span><span class="p">(</span><span class="s">"current access, type: %s, name:%s, actions:%v </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Type</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Actions</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h4 id="3harbor-token-生成分析">3.Harbor Token 生成分析</h4>
+<p>MakeToken 方法：/service/token/authutils.go#161</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// MakeToken 生成 JWT 字符串</span>
+<span class="k">func</span> <span class="n">MakeToken</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">service</span> <span class="kt">string</span><span class="p">,</span> <span class="n">access</span> <span class="p">[]</span><span class="o">*</span><span class="n">token</span><span class="o">.</span><span class="n">ResourceActions</span><span class="p">)</span> <span class="p">(</span><span class="n">token</span> <span class="kt">string</span><span class="p">,</span> <span class="n">expiresIn</span> <span class="kt">int</span><span class="p">,</span> <span class="n">issuedAt</span> <span class="o">*</span><span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="p">,</span> <span class="n">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 读取用于 JWT 签名的私钥</span>
+    <span class="n">pk</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">libtrust</span><span class="o">.</span><span class="n">LoadKeyFile</span><span class="p">(</span><span class="n">privateKey</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">""</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="c">// 生成 Token,expiration 是全局变量, 默认值为 30, 即 Token 过期时间为 30 分钟</span>
+    <span class="n">tk</span><span class="p">,</span> <span class="n">expiresIn</span><span class="p">,</span> <span class="n">issuedAt</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">makeTokenCore</span><span class="p">(</span><span class="n">issuer</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">expiration</span><span class="p">,</span> <span class="n">access</span><span class="p">,</span> <span class="n">pk</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">""</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="c">// 组合 Token, 构成 Header.Claim.Sign 格式的字符串</span>
+    <span class="n">rs</span> <span class="o">:=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"%s.%s"</span><span class="p">,</span> <span class="n">tk</span><span class="o">.</span><span class="n">Raw</span><span class="p">,</span> <span class="n">base64UrlEncode</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">Signature</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">rs</span><span class="p">,</span> <span class="n">expiresIn</span><span class="p">,</span> <span class="n">issuedAt</span><span class="p">,</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="c">//makeTokenCore 生成 Token</span>
+<span class="k">func</span> <span class="n">makeTokenCore</span><span class="p">(</span><span class="n">issuer</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">audience</span> <span class="kt">string</span><span class="p">,</span> <span class="n">expiration</span> <span class="kt">int</span><span class="p">,</span>
+    <span class="n">access</span> <span class="p">[]</span><span class="o">*</span><span class="n">token</span><span class="o">.</span><span class="n">ResourceActions</span><span class="p">,</span> <span class="n">signingKey</span> <span class="n">libtrust</span><span class="o">.</span><span class="n">PrivateKey</span><span class="p">)</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span><span class="n">token</span><span class="o">.</span><span class="n">Token</span><span class="p">,</span> <span class="n">expiresIn</span> <span class="kt">int</span><span class="p">,</span> <span class="n">issuedAt</span> <span class="o">*</span><span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="p">,</span> <span class="n">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">//JWT 头部</span>
+    <span class="n">joseHeader</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">token</span><span class="o">.</span><span class="n">Header</span><span class="p">{</span>
+        <span class="n">Type</span><span class="o">:</span>       <span class="s">"JWT"</span><span class="p">,</span><span class="c">// 类型</span>
+        <span class="n">SigningAlg</span><span class="o">:</span> <span class="s">"RS256"</span><span class="p">,</span><span class="c">// 签名方法</span>
+        <span class="n">KeyID</span><span class="o">:</span>      <span class="n">signingKey</span><span class="o">.</span><span class="n">KeyID</span><span class="p">(),</span><span class="c">// 使用私钥生成的唯一 ID</span>
+    <span class="p">}</span>
+    <span class="c">// 生成一串随机的 JWT ID</span>
+    <span class="n">jwtID</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">randString</span><span class="p">(</span><span class="m">16</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error to generate jwt id: %s"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">now</span> <span class="o">:=</span> <span class="n">time</span><span class="o">.</span><span class="n">Now</span><span class="p">()</span><span class="o">.</span><span class="n">UTC</span><span class="p">()</span>
+    <span class="n">issuedAt</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">now</span>
+    <span class="c">//expiration 为过期时间 (秒)</span>
+    <span class="n">expiresIn</span> <span class="o">=</span> <span class="n">expiration</span> <span class="o">*</span> <span class="m">60</span>
+    <span class="c">// 填充 Token 结构</span>
+    <span class="n">claimSet</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">token</span><span class="o">.</span><span class="n">ClaimSet</span><span class="p">{</span>
+        <span class="n">Issuer</span><span class="o">:</span>     <span class="n">issuer</span><span class="p">,</span><span class="c">//Token 签发者</span>
+        <span class="n">Subject</span><span class="o">:</span>    <span class="n">subject</span><span class="p">,</span><span class="c">// 获取 Token 的用户</span>
+        <span class="n">Audience</span><span class="o">:</span>   <span class="n">audience</span><span class="p">,</span><span class="c">//Token 接收者</span>
+        <span class="n">Expiration</span><span class="o">:</span> <span class="n">now</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">Duration</span><span class="p">(</span><span class="n">expiration</span><span class="p">)</span> <span class="o">*</span> <span class="n">time</span><span class="o">.</span><span class="n">Minute</span><span class="p">)</span><span class="o">.</span><span class="n">Unix</span><span class="p">(),</span><span class="c">//Token 过期时间</span>
+        <span class="n">NotBefore</span><span class="o">:</span>  <span class="n">now</span><span class="o">.</span><span class="n">Unix</span><span class="p">(),</span>
+        <span class="n">IssuedAt</span><span class="o">:</span>   <span class="n">now</span><span class="o">.</span><span class="n">Unix</span><span class="p">(),</span><span class="c">//Token 签发时间</span>
+        <span class="n">JWTID</span><span class="o">:</span>      <span class="n">jwtID</span><span class="p">,</span>
+        <span class="n">Access</span><span class="o">:</span>     <span class="n">access</span><span class="p">,</span><span class="c">// 权限</span>
+    <span class="p">}</span>
+
+    <span class="k">var</span> <span class="n">joseHeaderBytes</span><span class="p">,</span> <span class="n">claimSetBytes</span> <span class="p">[]</span><span class="kt">byte</span>
+    <span class="c">// 将 Header 进行 Json 序列化</span>
+    <span class="k">if</span> <span class="n">joseHeaderBytes</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">Marshal</span><span class="p">(</span><span class="n">joseHeader</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"unable to marshal jose header: %s"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c">// 将 Claim 进行 Json 序列化</span>
+    <span class="k">if</span> <span class="n">claimSetBytes</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">Marshal</span><span class="p">(</span><span class="n">claimSet</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"unable to marshal claim set: %s"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c">// 将 Header 和 Claim 字节数组进行 base64 编码</span>
+    <span class="n">encodedJoseHeader</span> <span class="o">:=</span> <span class="n">base64UrlEncode</span><span class="p">(</span><span class="n">joseHeaderBytes</span><span class="p">)</span>
+    <span class="n">encodedClaimSet</span> <span class="o">:=</span> <span class="n">base64UrlEncode</span><span class="p">(</span><span class="n">claimSetBytes</span><span class="p">)</span>
+    <span class="c">// 将 Header 和 Claim 合并为 Header.Claim</span>
+    <span class="n">payload</span> <span class="o">:=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"%s.%s"</span><span class="p">,</span> <span class="n">encodedJoseHeader</span><span class="p">,</span> <span class="n">encodedClaimSet</span><span class="p">)</span>
+
+    <span class="c">// 使用私钥对 payload 进行签名</span>
+    <span class="k">var</span> <span class="n">signatureBytes</span> <span class="p">[]</span><span class="kt">byte</span>
+    <span class="k">if</span> <span class="n">signatureBytes</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">signingKey</span><span class="o">.</span><span class="n">Sign</span><span class="p">(</span><span class="n">strings</span><span class="o">.</span><span class="n">NewReader</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span> <span class="n">crypto</span><span class="o">.</span><span class="n">SHA256</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="no">nil</span><span class="p">,</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"unable to sign jwt payload: %s"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">signature</span> <span class="o">:=</span> <span class="n">base64UrlEncode</span><span class="p">(</span><span class="n">signatureBytes</span><span class="p">)</span>
+    <span class="c">// 组合 Token, 构成 Header.Claim.Sign 格式的字符串</span>
+    <span class="n">tokenString</span> <span class="o">:=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"%s.%s"</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span>
+    <span class="c">// 创建 Token 实例</span>
+    <span class="n">t</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">NewToken</span><span class="p">(</span><span class="n">tokenString</span><span class="p">)</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Harbor Auth Token 分析&url=/Harbor-Auth-Token/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Harbor-Auth-Token/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Harbor-Auth-Token/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Docker" class="tag">&#35; Docker</a>
+          
+            <a href="/imkira.com/tags#Harbor" class="tag">&#35; Harbor</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

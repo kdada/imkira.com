@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Golang runtime.getg() 的实现 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Golang runtime.getg() 的实现" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Golang runtime.getg() 的实现" property="og:description">
+  
+  
+    <meta content="/Golang-runtime-getg/" property="og:url">
+  
+  
+    <meta content="2017-09-30T01:28:18+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Golang" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Golang runtime.getg() 的实现">
+  
+  
+    <meta name="twitter:url" content="/Golang-runtime-getg/">
+  
+  
+    <meta name="twitter:description" content="Golang runtime.getg() 的实现">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Golang runtime.getg() 的实现">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Golang runtime.getg() 的实现</h1>
+        <div class="page-date"><span>2017, Sep 30&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="系统环境">系统环境</h4>
+
+<p>系统版本： Fedora Release 25<br />
+内核版本：4.12.8-200.fc25.x86_64<br />
+GO: 1.8.3 linux/amd64</p>
+
+<h4 id="runtimegetg">runtime.getg()</h4>
+<p>这个函数用于获取当前正在执行的 goroutine 的信息（/usr/local/go/src/runtime/stubs.go#21）。</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// getg returns the pointer to the current g.</span>
+<span class="c">// The compiler rewrites calls to this function into instructions</span>
+<span class="c">// that fetch the g directly (from TLS or from the dedicated register).</span>
+<span class="k">func</span> <span class="n">getg</span><span class="p">()</span> <span class="o">*</span><span class="n">g</span>
+</code></pre></div></div>
+<p>从注释里可以看到，这个函数并不是在 runtime 里实现的，而是由编译器负责写入函数体。而且写明了是来自于 TLS（Thread-local Storage）或者指定的寄存器的。</p>
+
+<p>然后在编译器中搜索 getg 相关的内容，可以在 ssa.go 中发现与之相关的说明（cmd/compile/internal/amd64/ssa.go#712）：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">case</span> <span class="n">ssa</span><span class="o">.</span><span class="n">OpAMD64LoweredGetG</span><span class="o">:</span>
+	<span class="n">r</span> <span class="o">:=</span> <span class="n">v</span><span class="o">.</span><span class="n">Reg</span><span class="p">()</span>
+	<span class="c">// See the comments in cmd/internal/obj/x86/obj6.go</span>
+	<span class="c">// near CanUse1InsnTLS for a detailed explanation of these instructions.</span>
+	<span class="k">if</span> <span class="n">x86</span><span class="o">.</span><span class="n">CanUse1InsnTLS</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">Ctxt</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c">// MOVQ (TLS), r</span>
+		<span class="o">...</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="c">// MOVQ TLS, r</span>
+		<span class="c">// MOVQ (r)(TLS*1), r</span>
+		<span class="o">...</span>
+	<span class="p">}</span>
+</code></pre></div></div>
+<p>这里判断了能否使用单命令访问 TLS，可以就用第一种实现，否则使用第二种实现。也就是说，getg() 最终是从当前线程的 TLS 中取得 g 的信息。</p>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Golang runtime.getg() 的实现&url=/Golang-runtime-getg/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Golang-runtime-getg/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Golang-runtime-getg/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Golang" class="tag">&#35; Golang</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

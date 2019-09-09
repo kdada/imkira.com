@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>在 OSX 上安装最小化 Linux 开发环境 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="在 OSX 上安装最小化 Linux 开发环境" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="在 OSX 上安装最小化 Linux 开发环境" property="og:description">
+  
+  
+    <meta content="/Minimal-System-on-OSX/" property="og:url">
+  
+  
+    <meta content="2018-07-23T03:31:37+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Linux" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="在 OSX 上安装最小化 Linux 开发环境">
+  
+  
+    <meta name="twitter:url" content="/Minimal-System-on-OSX/">
+  
+  
+    <meta name="twitter:description" content="在 OSX 上安装最小化 Linux 开发环境">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="在 OSX 上安装最小化 Linux 开发环境">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">在 OSX 上安装最小化 Linux 开发环境</h1>
+        <div class="page-date"><span>2018, Jul 23&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h3 id="准备工具">准备工具</h3>
+<p>Virtual Box 下载地址：https://www.virtualbox.org/wiki/Downloads
+Fedora Server 下载地址：https://getfedora.org/zh_CN/server/download/</p>
+
+<p>在 OSX 下安装一个无桌面的 Linux 开发环境。主要完成三个目标：</p>
+<ol>
+  <li>剪贴板共享</li>
+  <li>文件共享</li>
+  <li>使用 linux 的命令行和开发环境（使用 ssh 配合 zsh+tmux+vim）</li>
+</ol>
+
+<h3 id="虚拟机设置">虚拟机设置</h3>
+<p>Virtual Box 关键配置如下：</p>
+<ol>
+  <li>常规 - 高级 - 共享剪贴板：双向</li>
+  <li>系统 - 主板 - 内存大小：足够大</li>
+  <li>系统 - 主板 - 启动顺序：硬盘 &gt; 光驱</li>
+  <li>系统 - 处理器 - 处理器数量：最大</li>
+  <li>存储 - 存储介质 - 光驱：Fedora ISO</li>
+  <li>网络 - 网卡 1 - 网络地址转换(NAT)</li>
+  <li>网络 - 网卡 2 - 仅主机 (Host-Only) 网络：选择一个接口
+    <ul>
+      <li>这个需要先在全局工具 - 主机网路管理器里创建</li>
+      <li>设置 IPv4 地址和掩码，不需要启用 DHCP 服务器</li>
+    </ul>
+  </li>
+  <li>共享文件夹：共享代码文件夹</li>
+</ol>
+
+<p>备注：Virtual Box 可以使用 shift + 启动 启动虚拟机但不打开虚拟机 UI 界面</p>
+
+<h3 id="安装-fedora-server-和-vbox-组件">安装 Fedora Server 和 VBox 组件</h3>
+<p>安装 Fedora，过程中需要配置网卡，第一张网卡无需配置，主要是第二张网卡的 IP 地址和掩码需要设置一下。</p>
+
+<p>安装完成后，重启，弹出光驱。然后在虚拟机界面的菜单中插入 VBox 的组件：Devices -&gt; Insert Guest Additions CD Image…</p>
+
+<p>更新系统：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dnf update kernel*
+dnf install gcc kernel-devel kernel-headers dkms make bzip2 perl
+dnf install xorg-x11-server-Xorg libXrandr
+dnf install xclip
+reboot
+
+mkdir /media/cdrom
+mount -r /dev/cdrom /media/cdrom
+cd /media/cdrom
+export KERN_DIR=/usr/src/kernels/`uname -r`/build
+./VBoxLinuxAdditions.run
+reboot
+</code></pre></div></div>
+
+<p>基础组件安装完成后，开机需要启动两个服务：</p>
+<ol>
+  <li>X :0：用于提供剪切板服务，指定显示编号为 :0</li>
+  <li>DISPLAY=:0：环境变量，用于给各种需要剪贴板的服务指定显示编号</li>
+  <li>VBoxClient –clipboard：用于同步主机和虚拟机的剪贴板</li>
+</ol>
+
+<p>开机自启动服务：</p>
+
+<p>/etc/systemd/system/x.service</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Unit]
+Description=X Server
+Requires=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/X :0
+
+[Install]
+WantedBy=multi-user.target
+</code></pre></div></div>
+
+<p>/etc/systemd/system/vboxclient.service</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Unit]
+Description=VBoxClient
+After=x.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/bash /usr/bin/StartVBoxClient.sh
+
+[Install]
+WantedBy=multi-user.target
+</code></pre></div></div>
+
+<p>/usr/bin/StartVBoxClient.sh</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#/bin/bash
+
+set -e;
+
+# waiting for x server running
+sleep 3;
+
+DISPLAY=:0 /usr/bin/VBoxClient --clipboard;
+</code></pre></div></div>
+
+<p>可以通过以下命令检查剪贴板同步是否正常（需要 DISPLAY 环境变量）：</p>
+
+<p>写入剪贴板：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo test | xclip -sel clipboard -i
+</code></pre></div></div>
+<p>读取剪贴板：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>xclip -sel clipboard -o
+</code></pre></div></div>
+
+<p>挂载共享文件夹：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mount -t vboxsf dev /root/dev
+</code></pre></div></div>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=在 OSX 上安装最小化 Linux 开发环境&url=/Minimal-System-on-OSX/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Minimal-System-on-OSX/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Minimal-System-on-OSX/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Linux" class="tag">&#35; Linux</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

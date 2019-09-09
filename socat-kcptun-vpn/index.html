@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>使用 socat 和 kcptun 实现 vpn - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="使用 socat 和 kcptun 实现 vpn" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="使用 socat 和 kcptun 实现 vpn" property="og:description">
+  
+  
+    <meta content="/socat-kcptun-vpn/" property="og:url">
+  
+  
+    <meta content="2017-01-13T23:19:45+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Linux" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="使用 socat 和 kcptun 实现 vpn">
+  
+  
+    <meta name="twitter:url" content="/socat-kcptun-vpn/">
+  
+  
+    <meta name="twitter:description" content="使用 socat 和 kcptun 实现 vpn">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="使用 socat 和 kcptun 实现 vpn">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">使用 socat 和 kcptun 实现 vpn</h1>
+        <div class="page-date"><span>2017, Jan 13&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h3 id="工具简介">工具简介</h3>
+<p>socat 是一个流重定向工具，例如可以将一个文件流通过 tcp 发送出去。本文主要使用 socat 的 tun 转发功能。<br />
+socat 可以使用如下命令安装：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum install -y socat
+</code></pre></div></div>
+
+<p><a href="https://github.com/xtaci/kcptun">kcptun</a> 是一个使用 udp 代替 tcp 的数据承载工具。在较差的网络环境中可以用带宽换时延，提高网络速度。<br />
+kcptun 是一个基于 kcp 协议的开源 tunnel 项目，可以在 <a href="https://github.com/xtaci/kcptun/releases">Github</a> 下载，注意选择系统版本 。</p>
+
+<h3 id="工作原理">工作原理</h3>
+<p><img src="/imkira.com/assets/img/socat-kcptun-vpn.png" alt="原理图" /></p>
+
+<ol>
+  <li>socat 创建 tun 设备，并读取 tun 设备的所有 ip 数据包，将数据包发送至另一端。</li>
+  <li>原则上 socat 客户端与 socat 服务端之间可以不使用 kcptun ， socat 客户端可以直接与 socat 服务端通信。</li>
+  <li>使用 kcptun 的目的是提高客户端与服务端之间的通信效率。</li>
+</ol>
+
+<h3 id="配置">配置</h3>
+<h4 id="服务端">服务端：</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 启动 socat ，监听 tcp 5001 端口，设置 tun 设备 ip 地址为 10.0.0.1/24
+nohup socat -d -d TCP-LISTEN:5001,reuseaddr TUN:10.0.0.1/24,up &gt; socat.out 2&gt;&amp;1 &amp;
+
+# 启动 kcptun ，监听 udp 5000 端口， 把数据都转发给 127.0.0.1:5001
+# 此处 kcptun 使用的是 linux/amd64 版本
+nohup ./server_linux_amd64 -t 127.0.0.1:5001 -l :5000 -mode fast2 &amp; &gt; kcptun.out 2&gt;&amp;1 &amp;
+</code></pre></div></div>
+
+<p>增加 iptables 规则：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># eth0 是服务器的外网网卡，根据服务器的网卡情况设置
+# 这条规则用于伪装 tun 的数据包
+iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE
+</code></pre></div></div>
+
+<h4 id="客户端">客户端：</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 启动 kcptun ， 监听 tcp 5001 端口， 把数据都转发给 服务器 IP:5000 
+nohup ./client_linux_amd64  -r 服务器 IP:5000 -l :5001 -mode fast2 &gt; kcptun.out 2&gt;&amp;1 &amp;
+
+# 启动 socat ，将 tun 设备所有数据包发送至 127.0.0.1:5001
+nohup socat TCP:127.0.0.1:5001 TUN:10.0.0.2/24,up &gt; socat.out 2&gt;&amp;1 &amp;
+
+</code></pre></div></div>
+
+<p>增加 iptables 规则：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># tun0 是 socat 创建的 tun 网卡，需要根据实际情况设置
+# 这条规则用于伪装 tun 的数据包
+iptables -t nat -A POSTROUTING  -o tun0 -j MASQUERADE
+</code></pre></div></div>
+
+<h4 id="客户端路由设置">客户端路由设置</h4>
+<p>如果没有设置客户端的路由，那么只能访问 10.0.0.1 。<br />
+ping 10.0.0.1 的情况:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ping -I tun0 10.0.0.1
+PING 10.0.0.1 (10.0.0.1) from 10.0.0.2 tun0: 56(84) bytes of data.
+64 bytes from 10.0.0.1: icmp_seq=1 ttl=64 time=276 ms
+64 bytes from 10.0.0.1: icmp_seq=2 ttl=64 time=272 ms
+64 bytes from 10.0.0.1: icmp_seq=3 ttl=64 time=278 ms
+64 bytes from 10.0.0.1: icmp_seq=4 ttl=64 time=270 ms
+
+--- 10.0.0.1 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3003ms
+rtt min/avg/max/mdev = 270.519/274.514/278.211/3.022 ms
+</code></pre></div></div>
+<p>这个 IP 是服务端的 tun0 的 IP 地址，客户端的 socat 在创建 tun0 的同时会加上一个对应 10.0.0.0/24 的路由，所以 10.0.0.1 能够正常访问。路由如下：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>10.0.0.0/24 dev tun0  proto kernel  scope link  src 10.0.0.2 
+</code></pre></div></div>
+
+<p>ping 8.8.8.8 的情况：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ping -I tun0 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) from 10.0.0.2 tun0: 56(84) bytes of data.
+
+--- 8.8.8.8 ping statistics ---
+6 packets transmitted, 0 received, 100% packet loss, time 5000ms
+</code></pre></div></div>
+<p>在客户端通过 tcpdump 确认 tun0 能正常的从 socat 发出并收到服务端的 IP 报文。ip -s addr show tun0 的 RX 和 TX 显示 IP 报文正常接收，没有错误，也没有 drop，但是无法被发出 IP 报文的应用程序接收。</p>
+
+<p>添加对应 IP 的路由后，即可正常访问这些 IP ：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 8.8.0.0/16 网段的 ip 都会通过 tun0 转发，根据实际需要设置路由即可
+ip route add 8.8.0.0/16 dev tun0
+</code></pre></div></div>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=使用 socat 和 kcptun 实现 vpn&url=/socat-kcptun-vpn/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/socat-kcptun-vpn/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/socat-kcptun-vpn/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Linux" class="tag">&#35; Linux</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

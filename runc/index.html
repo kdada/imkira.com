@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>runc 启动容器过程分析（附 CVE-2019-5736 实现过程） - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="runc 启动容器过程分析（附 CVE-2019-5736 实现过程）" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="runc 启动容器过程分析（附 CVE-2019-5736 实现过程）" property="og:description">
+  
+  
+    <meta content="/runc/" property="og:url">
+  
+  
+    <meta content="2019-02-15T01:10:28+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Kubernetes" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="runc 启动容器过程分析（附 CVE-2019-5736 实现过程）">
+  
+  
+    <meta name="twitter:url" content="/runc/">
+  
+  
+    <meta name="twitter:description" content="runc 启动容器过程分析（附 CVE-2019-5736 实现过程）">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="runc 启动容器过程分析（附 CVE-2019-5736 实现过程）">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">runc 启动容器过程分析（附 CVE-2019-5736 实现过程）</h1>
+        <div class="page-date"><span>2019, Feb 15&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h3 id="环境">环境</h3>
+
+<p>OCI runtime spec 地址：https://github.com/opencontainers/runtime-spec<br />
+runc 地址：https://github.com/opencontainers/runc/<br />
+Commit：f414f497b50a61750ea3af9fccf998a3db687cea<br />
+系统版本：Fedora Release 28 <br />
+内核版本：4.17.9-200.fc28.x86_64</p>
+
+<h3 id="runc-介绍">runc 介绍</h3>
+
+<p>runc 实现了 OCI 的容器标准，能够管理容器的生命周期。runc 的详细功能请参考 <a href="https://github.com/opencontainers/runc/tree/master/man">帮助文档</a>。</p>
+
+<p>runc 不是基于 server 形式的，所以所有的配置和状态都会存储在本地文件系统中（以下均为使用 docker 时的默认路径）：</p>
+<ul>
+  <li>容器配置：/run/docker/libcontainerd/{cnotainer-id}/config.json</li>
+  <li>容器 init 进程的标准输入输出流：/run/docker/libcontainerd/{cnotainer-id}/{init-stdin,init-stdout,init-stderr}</li>
+  <li>容器状态信息：/run/runc/*/state.json</li>
+</ul>
+
+<p>runc 创建容器时会将状态记录到 state.json 中，所有查询都是从 state.json 中取得容器基本信息，然后再从系统中获取容器实时状态。</p>
+
+<p>docker 的调用链如下：</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker-client -&gt; dockerd -&gt; docker-containerd -&gt; docker-containerd-shim -&gt; runc（容器外） -&gt; runc（容器内） -&gt; containter-entrypoint
+</code></pre></div></div>
+
+<h3 id="runc-启动容器过程">runc 启动容器过程</h3>
+
+<p>runc 在被 docker-containerd-shim 调用时，参数中会指定容器的配置路径（即 config.json 的位置），同时容器的根路径也已经准备完毕，因此 runc 不会有跟镜像相关的概念。容器的启动过程分析直接从 runc run 开始，即 docker 调用链中的 runc（容器外）这个时间点。</p>
+
+<h4 id="runc容器外环境准备">runc（容器外）环境准备</h4>
+
+<p>读取 config.json（github.com/opencontainers/runc/run.go#65）：</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// 读取 config.json</span>
+<span class="n">spec</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">setupSpec</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="n">err</span>
+<span class="p">}</span>
+<span class="c">// 启动容器</span>
+<span class="n">status</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">startContainer</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">CT_ACT_RUN</span><span class="p">,</span> <span class="no">nil</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">err</span> <span class="o">==</span> <span class="no">nil</span> <span class="p">{</span>
+	<span class="n">os</span><span class="o">.</span><span class="n">Exit</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="k">return</span> <span class="n">err</span>
+</code></pre></div></div>
+
+<p>startContainer 创建容器信息，并启动（github.com/opencontainers/runc/utils_linux.go#396）：</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">startContainer</span><span class="p">(</span><span class="n">context</span> <span class="o">*</span><span class="n">cli</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">spec</span> <span class="o">*</span><span class="n">specs</span><span class="o">.</span><span class="n">Spec</span><span class="p">,</span> <span class="n">action</span> <span class="n">CtAct</span><span class="p">,</span> <span class="n">criuOpts</span> <span class="o">*</span><span class="n">libcontainer</span><span class="o">.</span><span class="n">CriuOpts</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 通过 spec 创建容器结构，在 createContainer 中将 spec 转换为了 runc 的 container config</span>
+	<span class="n">container</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">createContainer</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">id</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="o">-</span><span class="m">1</span><span class="p">,</span> <span class="n">err</span>
+	<span class="p">}</span>
+    <span class="c">// 构建 runner 启动容器</span>
+	<span class="n">r</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">runner</span><span class="p">{</span>
+		<span class="c">// 容器</span>
+		<span class="n">container</span><span class="o">:</span>       <span class="n">container</span><span class="p">,</span>
+		<span class="c">// 即 CT_ACT_RUN</span>
+		<span class="n">action</span><span class="o">:</span>          <span class="n">action</span><span class="p">,</span>
+		<span class="c">// 用于设置 process.Init 字段</span>
+		<span class="n">init</span><span class="o">:</span>            <span class="no">true</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">Process</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>r.run() 启动容器（github.com/opencontainers/runc/utils_linux.go#268）：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">r</span> <span class="o">*</span><span class="n">runner</span><span class="p">)</span> <span class="n">run</span><span class="p">(</span><span class="n">config</span> <span class="o">*</span><span class="n">specs</span><span class="o">.</span><span class="n">Process</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c">// 根据 config 构建容器进程，此处 r.init 为 true</span>
+	<span class="n">process</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">newProcess</span><span class="p">(</span><span class="o">*</span><span class="n">config</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">init</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">r</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+		<span class="k">return</span> <span class="o">-</span><span class="m">1</span><span class="p">,</span> <span class="n">err</span>
+	<span class="p">}</span>
+
+    <span class="c">// 根据 action 调用 container 的对应方法</span>
+	<span class="k">switch</span> <span class="n">r</span><span class="o">.</span><span class="n">action</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">CT_ACT_CREATE</span><span class="o">:</span>
+		<span class="n">err</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">Start</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
+	<span class="k">case</span> <span class="n">CT_ACT_RESTORE</span><span class="o">:</span>
+		<span class="n">err</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">criuOpts</span><span class="p">)</span>
+    <span class="k">case</span> <span class="n">CT_ACT_RUN</span><span class="o">:</span>
+        <span class="c">// 此处调用的是这个方法</span>
+		<span class="n">err</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
+	<span class="k">default</span><span class="o">:</span>
+		<span class="nb">panic</span><span class="p">(</span><span class="s">"Unknown action"</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>container 是由 createContainer() 方法创建，根据创建链路 createContainer() -&gt; loadFactory() -&gt; libcontainer.New() 确认容器由 LinuxFactory.Create() 创建：</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// github.com/opencontainers/runc/libcontainer/factory_linux.go#132</span>
+<span class="k">func</span> <span class="n">New</span><span class="p">(</span><span class="n">root</span> <span class="kt">string</span><span class="p">,</span> <span class="n">options</span> <span class="o">...</span><span class="k">func</span><span class="p">(</span><span class="o">*</span><span class="n">LinuxFactory</span><span class="p">)</span> <span class="kt">error</span><span class="p">)</span> <span class="p">(</span><span class="n">Factory</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">l</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">LinuxFactory</span><span class="p">{</span>
+        <span class="c">// 指向当前的 exe 程序，即 runc 本身</span>
+        <span class="n">InitPath</span><span class="o">:</span>  <span class="s">"/proc/self/exe"</span><span class="p">,</span>
+        <span class="c">// os.Args[0] 是当前 runc 的路径，本质上和 InitPath 是一样的，即 runc init</span>
+		<span class="n">InitArgs</span><span class="o">:</span>  <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">Args</span><span class="p">[</span><span class="m">0</span><span class="p">],</span> <span class="s">"init"</span><span class="p">},</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">l</span><span class="p">,</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="c">// github.com/opencontainers/runc/libcontainer/factory_linux.go#189</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">l</span> <span class="o">*</span><span class="n">LinuxFactory</span><span class="p">)</span> <span class="n">Create</span><span class="p">(</span><span class="n">id</span> <span class="kt">string</span><span class="p">,</span> <span class="n">config</span> <span class="o">*</span><span class="n">configs</span><span class="o">.</span><span class="n">Config</span><span class="p">)</span> <span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 创建 linux 容器结构</span>
+	<span class="n">c</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">linuxContainer</span><span class="p">{</span>
+        <span class="c">// 容器 ID</span>
+        <span class="n">id</span><span class="o">:</span>            <span class="n">id</span><span class="p">,</span>
+        <span class="c">// 容器状态文件存放目录，默认是 /run/runc/{容器 id}/</span>
+        <span class="n">root</span><span class="o">:</span>          <span class="n">containerRoot</span><span class="p">,</span>
+        <span class="c">// 容器配置</span>
+        <span class="n">config</span><span class="o">:</span>        <span class="n">config</span><span class="p">,</span>
+        <span class="c">// 即 /proc/self/exe，就是 runc</span>
+        <span class="n">initPath</span><span class="o">:</span>      <span class="n">l</span><span class="o">.</span><span class="n">InitPath</span><span class="p">,</span>
+        <span class="c">// 即 runc init</span>
+		<span class="n">initArgs</span><span class="o">:</span>      <span class="n">l</span><span class="o">.</span><span class="n">InitArgs</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">c</span><span class="p">,</span> <span class="no">nil</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>所以整个容器的启动逻辑在 linuxContainer.Run() 里，调用链是 linuxContainer.Run() -&gt; linuxContainer.Start() -&gt; linuxContainer.start()：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// github.com/opencontainers/runc/libcontainer/container_linux.go#334</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span><span class="n">linuxContainer</span><span class="p">)</span> <span class="n">start</span><span class="p">(</span><span class="n">process</span> <span class="o">*</span><span class="n">Process</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="c">// process 是容器的 entrypoint，此处创建的是 entrypoint 的父进程</span>
+	<span class="n">parent</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">c</span><span class="o">.</span><span class="n">newParentProcess</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"creating new parent process"</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c">// 启动父进程</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">parent</span><span class="o">.</span><span class="n">start</span><span class="p">();</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="c">// terminate the process to ensure that it properly is reaped.</span>
+		<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">ignoreTerminateErrors</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">terminate</span><span class="p">());</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+			<span class="n">logrus</span><span class="o">.</span><span class="n">Warn</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"starting container process"</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span><span class="n">linuxContainer</span><span class="p">)</span> <span class="n">newParentProcess</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span><span class="n">Process</span><span class="p">)</span> <span class="p">(</span><span class="n">parentProcess</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 创建用于父子进程通信的 pipe</span>
+	<span class="n">parentPipe</span><span class="p">,</span> <span class="n">childPipe</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">utils</span><span class="o">.</span><span class="n">NewSockPair</span><span class="p">(</span><span class="s">"init"</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"creating new init pipe"</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c">// 创建父进程的 cmd</span>
+	<span class="n">cmd</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">c</span><span class="o">.</span><span class="n">commandTemplate</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">childPipe</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"creating new command template"</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="o">!</span><span class="n">p</span><span class="o">.</span><span class="n">Init</span> <span class="p">{</span>
+        <span class="c">// 由于 p.Init 为 true，所以不会执行到这里</span>
+		<span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">newSetnsProcess</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">parentPipe</span><span class="p">,</span> <span class="n">childPipe</span><span class="p">)</span>
+	<span class="p">}</span>
+
+    <span class="c">// 返回标准 init 进程</span>
+	<span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">newInitProcess</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">parentPipe</span><span class="p">,</span> <span class="n">childPipe</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span><span class="n">linuxContainer</span><span class="p">)</span> <span class="n">commandTemplate</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span><span class="n">Process</span><span class="p">,</span> <span class="n">childPipe</span> <span class="o">*</span><span class="n">os</span><span class="o">.</span><span class="n">File</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="n">exec</span><span class="o">.</span><span class="n">Cmd</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 这里可以看到 cmd 就是 runc init</span>
+	<span class="n">cmd</span> <span class="o">:=</span> <span class="n">exec</span><span class="o">.</span><span class="n">Command</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">initPath</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">initArgs</span><span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="p">]</span><span class="o">...</span><span class="p">)</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">Args</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">initArgs</span><span class="p">[</span><span class="m">0</span><span class="p">]</span>
+    <span class="c">// 将设置给容器 entrypoint 的 std 流给了 runc init 命令，这些流最终会通过 runc init 传递给 entrypoint </span>
+	<span class="n">cmd</span><span class="o">.</span><span class="n">Stdin</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Stdin</span>
+	<span class="n">cmd</span><span class="o">.</span><span class="n">Stdout</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Stdout</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">Stderr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Stderr</span>
+    
+    <span class="c">// 这个 childPipe 用于跟父进程通信（父进程就是当前这个 runc 进程）</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">ExtraFiles</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">ExtraFiles</span><span class="p">,</span> <span class="n">childPipe</span><span class="p">)</span>
+    <span class="c">// 通过环境变量 _LIBCONTAINER_INITPIPE 把 fd 号传递给 runc init，由于 std 流会占用前三个 fd 编号（0，1，2）</span>
+    <span class="c">// 所以 fd 要加上 3（stdioFdCount）</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">Env</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Env</span><span class="p">,</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"_LIBCONTAINER_INITPIPE=%d"</span><span class="p">,</span> <span class="n">stdioFdCount</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">ExtraFiles</span><span class="p">)</span><span class="o">-</span><span class="m">1</span><span class="p">),</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">cmd</span><span class="p">,</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span><span class="n">linuxContainer</span><span class="p">)</span> <span class="n">newInitProcess</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span><span class="n">Process</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">*</span><span class="n">exec</span><span class="o">.</span><span class="n">Cmd</span><span class="p">,</span> <span class="n">parentPipe</span><span class="p">,</span> <span class="n">childPipe</span> <span class="o">*</span><span class="n">os</span><span class="o">.</span><span class="n">File</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="n">initProcess</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c">// 这里通过环境变量 _LIBCONTAINER_INITTYPE 设置 init 类型为 standard（initStandard）</span>
+	<span class="n">cmd</span><span class="o">.</span><span class="n">Env</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Env</span><span class="p">,</span> <span class="s">"_LIBCONTAINER_INITTYPE="</span><span class="o">+</span><span class="kt">string</span><span class="p">(</span><span class="n">initStandard</span><span class="p">))</span>
+	<span class="n">nsMaps</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="k">map</span><span class="p">[</span><span class="n">configs</span><span class="o">.</span><span class="n">NamespaceType</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">ns</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">c</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Namespaces</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="n">ns</span><span class="o">.</span><span class="n">Path</span> <span class="o">!=</span> <span class="s">""</span> <span class="p">{</span>
+			<span class="n">nsMaps</span><span class="p">[</span><span class="n">ns</span><span class="o">.</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">ns</span><span class="o">.</span><span class="n">Path</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">sharePidns</span> <span class="o">:=</span> <span class="n">nsMaps</span><span class="p">[</span><span class="n">configs</span><span class="o">.</span><span class="n">NEWPID</span><span class="p">]</span>
+    <span class="c">// 构造 namespace 设置，然后序列化成字节数据</span>
+	<span class="n">data</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">c</span><span class="o">.</span><span class="n">bootstrapData</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Namespaces</span><span class="o">.</span><span class="n">CloneFlags</span><span class="p">(),</span> <span class="n">nsMaps</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
+	<span class="p">}</span>
+	<span class="n">init</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">initProcess</span><span class="p">{</span>
+		<span class="n">cmd</span><span class="o">:</span>             <span class="n">cmd</span><span class="p">,</span>
+		<span class="n">childPipe</span><span class="o">:</span>       <span class="n">childPipe</span><span class="p">,</span>
+		<span class="n">parentPipe</span><span class="o">:</span>      <span class="n">parentPipe</span><span class="p">,</span>
+		<span class="n">manager</span><span class="o">:</span>         <span class="n">c</span><span class="o">.</span><span class="n">cgroupManager</span><span class="p">,</span>
+        <span class="n">intelRdtManager</span><span class="o">:</span> <span class="n">c</span><span class="o">.</span><span class="n">intelRdtManager</span><span class="p">,</span>
+        
+		<span class="n">config</span><span class="o">:</span>          <span class="n">c</span><span class="o">.</span><span class="n">newInitConfig</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+		<span class="n">container</span><span class="o">:</span>       <span class="n">c</span><span class="p">,</span>
+		<span class="n">process</span><span class="o">:</span>         <span class="n">p</span><span class="p">,</span>
+		<span class="n">bootstrapData</span><span class="o">:</span>   <span class="n">data</span><span class="p">,</span>
+		<span class="n">sharePidns</span><span class="o">:</span>      <span class="n">sharePidns</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="n">c</span><span class="o">.</span><span class="n">initProcess</span> <span class="o">=</span> <span class="n">init</span>
+	<span class="k">return</span> <span class="n">init</span><span class="p">,</span> <span class="no">nil</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>在 linuxContainer.start() 中，创建了一个命令是 runc init 的初始化进程（initProcess），并启动了该进程，这里是 runc（容器外）的最核心的逻辑：</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// github.com/opencontainers/runc/libcontainer/process_linux.go#262</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="o">*</span><span class="n">initProcess</span><span class="p">)</span> <span class="n">start</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="k">defer</span> <span class="n">p</span><span class="o">.</span><span class="n">parentPipe</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+    <span class="c">// 启动了 cmd，即启动了 runc init</span>
+	<span class="n">err</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
+	<span class="n">p</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">ops</span> <span class="o">=</span> <span class="n">p</span>
+	<span class="n">p</span><span class="o">.</span><span class="n">childPipe</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">p</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">ops</span> <span class="o">=</span> <span class="no">nil</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"starting init process command"</span><span class="p">)</span>
+	<span class="p">}</span>
+
+    <span class="c">// 将 bootstrapData 写入到 parent pipe 中，此时 runc init 可以从 child pipe 里读取到这个数据</span>
+	<span class="k">if</span> <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">io</span><span class="o">.</span><span class="n">Copy</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">parentPipe</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bootstrapData</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"copying bootstrap data to pipe"</span><span class="p">)</span>
+    <span class="p">}</span>
+    
+    <span class="c">// 获取子进程的 PID，即 runc init 的 PID</span>
+    <span class="n">childPid</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">getChildPid</span><span class="p">()</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"getting the final child's pid from pipe"</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="c">// 如果子容器的配置中要求创建新的 CGROUP Namespace，那么这里还要向 parent pipe 写入一个字节的数据 0x80（createCgroupns）</span>
+	<span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">Namespaces</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">configs</span><span class="o">.</span><span class="n">NEWCGROUP</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">p</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">Namespaces</span><span class="o">.</span><span class="n">PathOf</span><span class="p">(</span><span class="n">configs</span><span class="o">.</span><span class="n">NEWCGROUP</span><span class="p">)</span> <span class="o">==</span> <span class="s">""</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">parentPipe</span><span class="o">.</span><span class="n">Write</span><span class="p">([]</span><span class="kt">byte</span><span class="p">{</span><span class="n">createCgroupns</span><span class="p">});</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"sending synchronization value to init process"</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="c">// 等待 runc init 退出</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">waitForChildExit</span><span class="p">(</span><span class="n">childPid</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"waiting for our first child to exit"</span><span class="p">)</span>
+	<span class="p">}</span>
+    
+    <span class="c">// 向 parent pipe 中写入 container config，也就是把容器配置传递给了 runc init</span>
+    <span class="c">// 为什么 runc init 都退出了，还要往里面写配置？==》这个问题下面说到 runc init 的时候再解释</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">sendConfig</span><span class="p">();</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"sending config to init process"</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">var</span> <span class="p">(</span>
+		<span class="n">sentRun</span>    <span class="kt">bool</span>
+		<span class="n">sentResume</span> <span class="kt">bool</span>
+	<span class="p">)</span>
+    <span class="c">// 从 parent pipe 中读取来自 runc init 的同步消息</span>
+	<span class="n">ierr</span> <span class="o">:=</span> <span class="n">parseSync</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">parentPipe</span><span class="p">,</span> <span class="k">func</span><span class="p">(</span><span class="n">sync</span> <span class="o">*</span><span class="n">syncT</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+		<span class="o">...</span>
+		<span class="k">return</span> <span class="no">nil</span>
+	<span class="p">})</span>
+	<span class="k">return</span> <span class="no">nil</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>总结：</p>
+<ul>
+  <li>runc 被 docker-containerd-shim 调用后，从 config.json 中读取 container spec，并转换成内部 config</li>
+  <li>这个 runc 在外部运行，拥有 root 权限</li>
+  <li>runc 启动了一个子进程，runc init，然后通过 pipe 将 bootstrapData（含有 namespace 信息），0x80（NEWCGROUP），容器 config 传输给 runc init，并开始等待 runc init 的同步消息</li>
+</ul>
+
+<h4 id="runc容器内启动过程">runc（容器内）启动过程</h4>
+<p>原则上来说，容器外的 runc 启动的 runc init 仍然是在容器外部的，但是它会逐步的限制自身的 namespace 来构建容器环境，因此这里直接算作容器内的 runc。</p>
+
+<p>runc init 命令启动：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+	<span class="s">"os"</span>
+	<span class="s">"runtime"</span>
+
+    <span class="s">"github.com/opencontainers/runc/libcontainer"</span>
+    <span class="c">// 这个包非常重要，是 runc init 启动的基石</span>
+	<span class="n">_</span> <span class="s">"github.com/opencontainers/runc/libcontainer/nsenter"</span>
+	<span class="s">"github.com/urfave/cli"</span>
+<span class="p">)</span>
+
+<span class="k">func</span> <span class="n">init</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">Args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="m">1</span> <span class="o">&amp;&amp;</span> <span class="n">os</span><span class="o">.</span><span class="n">Args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">"init"</span> <span class="p">{</span>
+		<span class="n">runtime</span><span class="o">.</span><span class="n">GOMAXPROCS</span><span class="p">(</span><span class="m">1</span><span class="p">)</span>
+		<span class="n">runtime</span><span class="o">.</span><span class="n">LockOSThread</span><span class="p">()</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">var</span> <span class="n">initCommand</span> <span class="o">=</span> <span class="n">cli</span><span class="o">.</span><span class="n">Command</span><span class="p">{</span>
+	<span class="n">Name</span><span class="o">:</span>  <span class="s">"init"</span><span class="p">,</span>
+	<span class="n">Usage</span><span class="o">:</span> <span class="s">`initialize the namespaces and launch the process (do not call it outside of runc)`</span><span class="p">,</span>
+	<span class="n">Action</span><span class="o">:</span> <span class="k">func</span><span class="p">(</span><span class="n">context</span> <span class="o">*</span><span class="n">cli</span><span class="o">.</span><span class="n">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+        <span class="c">// 构造了一个空的 factory</span>
+        <span class="n">factory</span><span class="p">,</span> <span class="n">_</span> <span class="o">:=</span> <span class="n">libcontainer</span><span class="o">.</span><span class="n">New</span><span class="p">(</span><span class="s">""</span><span class="p">)</span>
+        <span class="c">// 初始化容器环境</span>
+		<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">factory</span><span class="o">.</span><span class="n">StartInitialization</span><span class="p">();</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+			<span class="n">os</span><span class="o">.</span><span class="n">Exit</span><span class="p">(</span><span class="m">1</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nb">panic</span><span class="p">(</span><span class="s">"libcontainer: container init failed to exec"</span><span class="p">)</span>
+	<span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>由于 nsenter 包被匿名引入，而且利用了 GCC 构造器特性，导致 go 的代码最后才会执行，因此先看 nsenter 包的代码（github.com/opencontainers/runc/libcontainer/nsenter/nsenter.go）：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// +build linux,!gccgo</span>
+
+<span class="k">package</span> <span class="n">nsenter</span>
+
+<span class="c">/*
+#cgo CFLAGS: -Wall
+extern void nsexec();
+void __attribute__((constructor)) init(void) {
+	nsexec();
+}
+*/</span>
+<span class="k">import</span> <span class="s">"C"</span>
+</code></pre></div></div>
+<p>这个代码利用了 GCC 的 constructor 特性，init 会在 runtimel.main()（不是 main.main()） 函数之前执行， 这样保证了启动时是单线程的，这一点很重要。因为 linux 不允许在多线程中通过 setns 设置 user namespace。</p>
+
+<p>这个初始化函数调用了 nsexec()（github.com/opencontainers/runc/libcontainer/nsenter/nsexec.c#540）：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">void</span> <span class="n">nsexec</span><span class="p">(</span><span class="n">void</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="kt">int</span> <span class="n">pipenum</span><span class="p">;</span>
+	<span class="n">jmp_buf</span> <span class="n">env</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">2</span><span class="p">],</span> <span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">2</span><span class="p">];</span>
+	<span class="k">struct</span> <span class="n">nlconfig_t</span> <span class="n">config</span> <span class="o">=</span> <span class="p">{</span> <span class="m">0</span> <span class="p">};</span>
+
+	<span class="c">// 从环境变量 _LIBCONTAINER_INITPIPE 中取得 child pipe 的 fd 编号</span>
+	<span class="n">pipenum</span> <span class="o">=</span> <span class="n">initpipe</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pipenum</span> <span class="o">==</span> <span class="o">-</span><span class="m">1</span><span class="p">)</span>
+        <span class="c">// 由于正常启动的 runc 是没有这个环境变量的，所以这里会直接返回，然后就开始正常的执行 go 程序了</span>
+		<span class="k">return</span><span class="p">;</span>
+
+    <span class="c">// 确保当前的二进制文件是已经复制过的，用来规避 CVE-2019-5736 漏洞</span>
+    <span class="c">// ensure_cloned_binary 中使用了两种方法：</span>
+    <span class="c">// - 使用 memfd，将二进制文件写入 memfd，然后重启 runc</span>
+    <span class="c">// - 复制二进制文件到临时文件，然后重启 runc</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">ensure_cloned_binary</span><span class="p">()</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+		<span class="n">bail</span><span class="p">(</span><span class="s">"could not ensure we are a cloned binary"</span><span class="p">);</span>
+
+	<span class="c">// 从 child pipe 中读取 namespace config</span>
+	<span class="n">nl_parse</span><span class="p">(</span><span class="n">pipenum</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">config</span><span class="p">);</span>
+
+	<span class="c">// 设置 oom score，这个只能在特权模式下设置，所以在这里就要修改完成</span>
+	<span class="n">update_oom_score_adj</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">oom_score_adj</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">oom_score_adj_len</span><span class="p">);</span>
+
+	<span class="c">// 设置不可 dump</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">namespaces</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_DUMPABLE</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+			<span class="n">bail</span><span class="p">(</span><span class="s">"failed to set process as non-dumpable"</span><span class="p">);</span>
+	<span class="p">}</span>
+
+	<span class="c">// 创建和子进程通信的 pipe，为什么有这个 pipe，下面解释</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">socketpair</span><span class="p">(</span><span class="n">AF_LOCAL</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="n">sync_child_pipe</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+		<span class="n">bail</span><span class="p">(</span><span class="s">"failed to setup sync pipe between parent and child"</span><span class="p">);</span>
+
+	<span class="c">// 创建和孙进程通信的 pipe，为什么有这个 pipe，下面解释</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">socketpair</span><span class="p">(</span><span class="n">AF_LOCAL</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="n">sync_grandchild_pipe</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+        <span class="n">bail</span><span class="p">(</span><span class="s">"failed to setup sync pipe between parent and grandchild"</span><span class="p">);</span>
+    
+    <span class="c">// setjmp 将当前执行位置的环境保存下来，用于多进程环境下的程序跳转</span>
+    <span class="c">// 第一次执行的时候 setjmp 返回 0，对应 JUMP_PARENT</span>
+	<span class="k">switch</span> <span class="p">(</span><span class="n">setjmp</span><span class="p">(</span><span class="n">env</span><span class="p">))</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">JUMP_PARENT</span><span class="o">:</span><span class="p">{</span>
+			<span class="kt">int</span> <span class="nb">len</span><span class="p">;</span>
+			<span class="n">pid_t</span> <span class="n">child</span><span class="p">,</span> <span class="n">first_child</span> <span class="o">=</span> <span class="o">-</span><span class="m">1</span><span class="p">;</span>
+			<span class="kt">bool</span> <span class="n">ready</span> <span class="o">=</span> <span class="no">false</span><span class="p">;</span>
+
+			<span class="c">/* For debugging. */</span>
+			<span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_NAME</span><span class="p">,</span> <span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span><span class="p">)</span><span class="s">"runc:[0:PARENT]"</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>
+
+            <span class="c">// clone_parent 创建了和当前进程完全一致的一个进程（子进程）</span>
+            <span class="c">// 在 clone_parent 中，通过 longjmp() 跳转到 env 保存的位置</span>
+            <span class="c">// 并且 setjmp 返回值为 JUMP_CHILD</span>
+            <span class="c">// 这样这个子进程就会根据 switch 执行到 JUMP_CHILD 分支</span>
+            <span class="c">// 而当前 runc init 和 子 runc init 之间通过上面创建的</span>
+            <span class="c">// sync_child_pipe 进行同步通信</span>
+			<span class="n">child</span> <span class="o">=</span> <span class="n">clone_parent</span><span class="p">(</span><span class="o">&amp;</span><span class="n">env</span><span class="p">,</span> <span class="n">JUMP_CHILD</span><span class="p">);</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">child</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"unable to fork: child_func"</span><span class="p">);</span>
+
+            <span class="c">// 通过 sync_child_pipe 循环读取来自子进程的消息</span>
+			<span class="n">while</span> <span class="p">(</span><span class="o">!</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">enum</span> <span class="n">sync_t</span> <span class="n">s</span><span class="p">;</span>
+				<span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+
+				<span class="n">syncfd</span> <span class="o">=</span> <span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">1</span><span class="p">];</span>
+				<span class="nb">close</span><span class="p">(</span><span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
+
+				<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: next state"</span><span class="p">);</span>
+
+				<span class="k">switch</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">case</span> <span class="n">SYNC_ERR</span><span class="o">:</span>
+					<span class="c">/* We have to mirror the error code of the child. */</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: read(error code)"</span><span class="p">);</span>
+
+					<span class="n">exit</span><span class="p">(</span><span class="n">ret</span><span class="p">);</span>
+				<span class="k">case</span> <span class="n">SYNC_USERMAP_PLS</span><span class="o">:</span>
+					<span class="c">// 这里设置 user map，因为子进程修改自身的 user namespace 之后，就没有权限再设置 user map 了</span>
+
+					<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">is_rootless_euid</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">config</span><span class="o">.</span><span class="n">is_setgroup</span><span class="p">)</span>
+						<span class="n">update_setgroups</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SETGROUPS_DENY</span><span class="p">);</span>
+
+					<span class="c">/* Set up mappings. */</span>
+					<span class="n">update_uidmap</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">uidmappath</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">uidmap</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">uidmap_len</span><span class="p">);</span>
+					<span class="n">update_gidmap</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">gidmappath</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">gidmap</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">gidmap_len</span><span class="p">);</span>
+
+                    <span class="c">// 向子进程发送 SYNC_USERMAP_ACK，表示处理完成</span>
+					<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_USERMAP_ACK</span><span class="p">;</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+						<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: write(SYNC_USERMAP_ACK)"</span><span class="p">);</span>
+					<span class="p">}</span>
+					<span class="k">break</span><span class="p">;</span>
+				<span class="k">case</span> <span class="n">SYNC_RECVPID_PLS</span><span class="o">:</span><span class="p">{</span>
+						<span class="n">first_child</span> <span class="o">=</span> <span class="n">child</span><span class="p">;</span>
+                        <span class="c">// 接收孙进程（还是 runc init）的 pid</span>
+						<span class="c">/* Get the init_func pid. */</span>
+						<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">child</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">child</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">child</span><span class="p">))</span> <span class="p">{</span>
+							<span class="n">kill</span><span class="p">(</span><span class="n">first_child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+							<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: read(childpid)"</span><span class="p">);</span>
+						<span class="p">}</span>
+
+						<span class="c">// 向子进程发送 SYNC_RECVPID_ACK，表示处理完成</span>
+						<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_RECVPID_ACK</span><span class="p">;</span>
+						<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+							<span class="n">kill</span><span class="p">(</span><span class="n">first_child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+							<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+							<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: write(SYNC_RECVPID_ACK)"</span><span class="p">);</span>
+						<span class="p">}</span>
+
+                        <span class="c">// 通过容器外传进来的 child pipe 把子和孙进程 PID，写回去，然后让容器外的 runc 接管 PID</span>
+                        <span class="c">// 这个是因为 clone_parent 的时候参数传了 CLONE_PARENT，导致子孙的父进程都是容器外的那个 runc</span>
+                        <span class="c">// 所以当前进程无法接管这些 PID</span>
+						<span class="nb">len</span> <span class="o">=</span> <span class="n">dprintf</span><span class="p">(</span><span class="n">pipenum</span><span class="p">,</span> <span class="s">"{</span><span class="se">\"</span><span class="s">pid</span><span class="se">\"</span><span class="s">: %d, </span><span class="se">\"</span><span class="s">pid_first</span><span class="se">\"</span><span class="s">: %d}</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">first_child</span><span class="p">);</span>
+						<span class="k">if</span> <span class="p">(</span><span class="nb">len</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span> <span class="p">{</span>
+							<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+							<span class="n">bail</span><span class="p">(</span><span class="s">"unable to generate JSON for child pid"</span><span class="p">);</span>
+						<span class="p">}</span>
+					<span class="p">}</span>
+					<span class="k">break</span><span class="p">;</span>
+                <span class="k">case</span> <span class="n">SYNC_CHILD_READY</span><span class="o">:</span>
+                    <span class="c">// 子进程已经处理完了所有事情，退出循环</span>
+					<span class="n">ready</span> <span class="o">=</span> <span class="no">true</span><span class="p">;</span>
+					<span class="k">break</span><span class="p">;</span>
+				<span class="k">default</span><span class="o">:</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"unexpected sync value: %u"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+
+            <span class="c">// 通过 sync_grandchild_pipe 循环读取来自孙进程的消息</span>
+			<span class="n">ready</span> <span class="o">=</span> <span class="no">false</span><span class="p">;</span>
+			<span class="n">while</span> <span class="p">(</span><span class="o">!</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">enum</span> <span class="n">sync_t</span> <span class="n">s</span><span class="p">;</span>
+				<span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+
+				<span class="n">syncfd</span> <span class="o">=</span> <span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">1</span><span class="p">];</span>
+				<span class="nb">close</span><span class="p">(</span><span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
+
+				<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_GRANDCHILD</span><span class="p">;</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+					<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: write(SYNC_GRANDCHILD)"</span><span class="p">);</span>
+				<span class="p">}</span>
+
+				<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: next state"</span><span class="p">);</span>
+
+				<span class="k">switch</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">case</span> <span class="n">SYNC_ERR</span><span class="o">:</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with child: read(error code)"</span><span class="p">);</span>
+
+					<span class="n">exit</span><span class="p">(</span><span class="n">ret</span><span class="p">);</span>
+                <span class="k">case</span> <span class="n">SYNC_CHILD_READY</span><span class="o">:</span>
+                    <span class="c">// 等待孙进程准备完成</span>
+					<span class="n">ready</span> <span class="o">=</span> <span class="no">true</span><span class="p">;</span>
+					<span class="k">break</span><span class="p">;</span>
+				<span class="k">default</span><span class="o">:</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"unexpected sync value: %u"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+				<span class="p">}</span>
+            <span class="p">}</span>
+            <span class="c">// 退出。很明显，当前 runc init 退出的时候，子 runc init 一定也退出了，但是孙 runc init 还没有退出</span>
+            <span class="c">// 这也是为什么容器外的 runc 等待子进程退出，却又向 pipe 里写数据的原因，因为孙 runc init 还在等着容器配置</span>
+            <span class="c">// 进程正常退出（不给 go 代码执行的机会）</span>
+			<span class="n">exit</span><span class="p">(</span><span class="m">0</span><span class="p">);</span>
+		<span class="p">}</span>
+	<span class="k">case</span> <span class="n">JUMP_CHILD</span><span class="o">:</span><span class="p">{</span>
+			<span class="n">pid_t</span> <span class="n">child</span><span class="p">;</span>
+			<span class="n">enum</span> <span class="n">sync_t</span> <span class="n">s</span><span class="p">;</span>
+
+			<span class="c">/* We're in a child and thus need to tell the parent if we die. */</span>
+			<span class="n">syncfd</span> <span class="o">=</span> <span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">];</span>
+			<span class="nb">close</span><span class="p">(</span><span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">1</span><span class="p">]);</span>
+
+			<span class="c">/* For debugging. */</span>
+			<span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_NAME</span><span class="p">,</span> <span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span><span class="p">)</span><span class="s">"runc:[1:CHILD]"</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>
+
+			<span class="c">// 通过 setns 加入现有的 namespace</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">namespaces</span><span class="p">)</span>
+				<span class="n">join_namespaces</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">namespaces</span><span class="p">);</span>
+
+            <span class="c">// 如果 clone flag 里有 CLONE_NEWUSER，说明需要创建新的 user namespace，此处调用 unshare 进行了处理</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">cloneflags</span> <span class="o">&amp;</span> <span class="n">CLONE_NEWUSER</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWUSER</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to unshare user namespace"</span><span class="p">);</span>
+				<span class="n">config</span><span class="o">.</span><span class="n">cloneflags</span> <span class="o">&amp;=</span> <span class="err">~</span><span class="n">CLONE_NEWUSER</span><span class="p">;</span>
+
+				<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">namespaces</span><span class="p">)</span> <span class="p">{</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_DUMPABLE</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to set process as dumpable"</span><span class="p">);</span>
+                <span class="p">}</span>
+                
+                <span class="c">// 等待父 runc init 配置 user map</span>
+				<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_USERMAP_PLS</span><span class="p">;</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: write(SYNC_USERMAP_PLS)"</span><span class="p">);</span>
+
+				<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: read(SYNC_USERMAP_ACK)"</span><span class="p">);</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">!=</span> <span class="n">SYNC_USERMAP_ACK</span><span class="p">)</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: SYNC_USERMAP_ACK: got %u"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+
+				<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">namespaces</span><span class="p">)</span> <span class="p">{</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_DUMPABLE</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to set process as dumpable"</span><span class="p">);</span>
+				<span class="p">}</span>
+
+				<span class="c">// 设置当前进程的 uid 为 0，即容器内的 root</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">setresuid</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"failed to become root in user namespace"</span><span class="p">);</span>
+            <span class="p">}</span>
+            
+			<span class="c">// unshare 其他需要新建的 namespace</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">unshare</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">cloneflags</span> <span class="o">&amp;</span> <span class="err">~</span><span class="n">CLONE_NEWCGROUP</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to unshare namespaces"</span><span class="p">);</span>
+
+			<span class="c">// 创建孙进程，当前进程已经完成了 namespace 的设置，孙进程会继承这些设置</span>
+			<span class="n">child</span> <span class="o">=</span> <span class="n">clone_parent</span><span class="p">(</span><span class="o">&amp;</span><span class="n">env</span><span class="p">,</span> <span class="n">JUMP_INIT</span><span class="p">);</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">child</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"unable to fork: init_func"</span><span class="p">);</span>
+
+			<span class="c">// 将孙进程 PID 传给父 runc init</span>
+			<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_RECVPID_PLS</span><span class="p">;</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+				<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: write(SYNC_RECVPID_PLS)"</span><span class="p">);</span>
+			<span class="p">}</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">child</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">child</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">child</span><span class="p">))</span> <span class="p">{</span>
+				<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: write(childpid)"</span><span class="p">);</span>
+			<span class="p">}</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+				<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: read(SYNC_RECVPID_ACK)"</span><span class="p">);</span>
+			<span class="p">}</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">!=</span> <span class="n">SYNC_RECVPID_ACK</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: SYNC_RECVPID_ACK: got %u"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+			<span class="p">}</span>
+
+            <span class="c">// 发送 SYNC_CHILD_READY 给父 runc init</span>
+			<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_CHILD_READY</span><span class="p">;</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="p">{</span>
+				<span class="n">kill</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">SIGKILL</span><span class="p">);</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: write(SYNC_CHILD_READY)"</span><span class="p">);</span>
+			<span class="p">}</span>
+
+            <span class="c">// 子 runc init 的工作到此结束，进程正常退出（不给 go 代码执行的机会）</span>
+			<span class="n">exit</span><span class="p">(</span><span class="m">0</span><span class="p">);</span>
+		<span class="p">}</span>
+
+	<span class="k">case</span> <span class="n">JUMP_INIT</span><span class="o">:</span><span class="p">{</span>
+			<span class="c">// 孙 runc init 是真正启动容器 entrypoint 的进程，并且在启动之前，进行最后的环境准备工作</span>
+			<span class="n">enum</span> <span class="n">sync_t</span> <span class="n">s</span><span class="p">;</span>
+
+			<span class="c">/* We're in a child and thus need to tell the parent if we die. */</span>
+			<span class="n">syncfd</span> <span class="o">=</span> <span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">];</span>
+			<span class="nb">close</span><span class="p">(</span><span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">1</span><span class="p">]);</span>
+			<span class="nb">close</span><span class="p">(</span><span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
+			<span class="nb">close</span><span class="p">(</span><span class="n">sync_child_pipe</span><span class="p">[</span><span class="m">1</span><span class="p">]);</span>
+
+			<span class="c">/* For debugging. */</span>
+			<span class="n">prctl</span><span class="p">(</span><span class="n">PR_SET_NAME</span><span class="p">,</span> <span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span><span class="p">)</span><span class="s">"runc:[2:INIT]"</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: read(SYNC_GRANDCHILD)"</span><span class="p">);</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">!=</span> <span class="n">SYNC_GRANDCHILD</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with parent: SYNC_GRANDCHILD: got %u"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">setsid</span><span class="p">()</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"setsid failed"</span><span class="p">);</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">setuid</span><span class="p">(</span><span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"setuid failed"</span><span class="p">);</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">setgid</span><span class="p">(</span><span class="m">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"setgid failed"</span><span class="p">);</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">config</span><span class="o">.</span><span class="n">is_rootless_euid</span> <span class="o">&amp;&amp;</span> <span class="n">config</span><span class="o">.</span><span class="n">is_setgroup</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">setgroups</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="n">NULL</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"setgroups failed"</span><span class="p">);</span>
+			<span class="p">}</span>
+
+			<span class="c">// 等待来自容器外 runc 的 child pipe 的关于 cgroup namespace 的消息 0x80（CREATECGROUPNS）</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">cloneflags</span> <span class="o">&amp;</span> <span class="n">CLONE_NEWCGROUP</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">uint8_t</span> <span class="n">value</span><span class="p">;</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">pipenum</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"read synchronisation value failed"</span><span class="p">);</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">value</span> <span class="o">==</span> <span class="n">CREATECGROUPNS</span><span class="p">)</span> <span class="p">{</span>
+					<span class="k">if</span> <span class="p">(</span><span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWCGROUP</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">0</span><span class="p">)</span>
+						<span class="n">bail</span><span class="p">(</span><span class="s">"failed to unshare cgroup namespace"</span><span class="p">);</span>
+				<span class="p">}</span> <span class="k">else</span>
+					<span class="n">bail</span><span class="p">(</span><span class="s">"received unknown synchronisation value"</span><span class="p">);</span>
+			<span class="p">}</span>
+
+            <span class="c">// 发送孙进程准备完成的消息给祖父 runc init</span>
+			<span class="n">s</span> <span class="o">=</span> <span class="n">SYNC_CHILD_READY</span><span class="p">;</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">syncfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">,</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">!=</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+				<span class="n">bail</span><span class="p">(</span><span class="s">"failed to sync with patent: write(SYNC_CHILD_READY)"</span><span class="p">);</span>
+
+			<span class="c">/* Close sync pipes. */</span>
+			<span class="nb">close</span><span class="p">(</span><span class="n">sync_grandchild_pipe</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
+
+			<span class="c">/* Free netlink data. */</span>
+			<span class="n">nl_free</span><span class="p">(</span><span class="o">&amp;</span><span class="n">config</span><span class="p">);</span>
+
+            <span class="c">// 此时，父 / 祖父 runc init 都退出了（可能会有时差）</span>
+            <span class="c">// 但是当前进程是不能直接退出的，所以这里单纯的 return，然后开始执行 go 代码</span>
+			<span class="k">return</span><span class="p">;</span>
+		<span class="p">}</span>
+	<span class="k">default</span><span class="o">:</span>
+		<span class="n">bail</span><span class="p">(</span><span class="s">"unexpected jump value"</span><span class="p">);</span>
+	<span class="p">}</span>
+
+	<span class="c">/* Should never be reached. */</span>
+	<span class="n">bail</span><span class="p">(</span><span class="s">"should never be reached"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>在 namespace 初始化完成后，会通过调用链 LinuxFactory.StartInitialization() -&gt; newContainerInit() 创建容器初始化结构 linuxStandardInit（github.com/opencontainers/runc/libcontainer/init_linux.go#47）：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">newContainerInit</span><span class="p">(</span><span class="n">t</span> <span class="n">initType</span><span class="p">,</span> <span class="n">pipe</span> <span class="o">*</span><span class="n">os</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">consoleSocket</span> <span class="o">*</span><span class="n">os</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">fifoFd</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="n">initer</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">var</span> <span class="n">config</span> <span class="o">*</span><span class="n">initConfig</span>
+    <span class="c">// 此处从 child pipe 中读取了 container config</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">json</span><span class="o">.</span><span class="n">NewDecoder</span><span class="p">(</span><span class="n">pipe</span><span class="p">)</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="o">&amp;</span><span class="n">config</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">populateProcessEnvironment</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Env</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="c">// t 为 standard，来自于环境变量 _LIBCONTAINER_INITTYPE</span>
+	<span class="k">switch</span> <span class="n">t</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">initSetns</span><span class="o">:</span>
+		<span class="k">return</span> <span class="o">&amp;</span><span class="n">linuxSetnsInit</span><span class="p">{</span>
+			<span class="n">pipe</span><span class="o">:</span>          <span class="n">pipe</span><span class="p">,</span>
+			<span class="n">consoleSocket</span><span class="o">:</span> <span class="n">consoleSocket</span><span class="p">,</span>
+			<span class="n">config</span><span class="o">:</span>        <span class="n">config</span><span class="p">,</span>
+		<span class="p">},</span> <span class="no">nil</span>
+	<span class="k">case</span> <span class="n">initStandard</span><span class="o">:</span>
+		<span class="k">return</span> <span class="o">&amp;</span><span class="n">linuxStandardInit</span><span class="p">{</span>
+			<span class="n">pipe</span><span class="o">:</span>          <span class="n">pipe</span><span class="p">,</span>
+			<span class="n">consoleSocket</span><span class="o">:</span> <span class="n">consoleSocket</span><span class="p">,</span>
+			<span class="n">parentPid</span><span class="o">:</span>     <span class="n">unix</span><span class="o">.</span><span class="n">Getppid</span><span class="p">(),</span>
+			<span class="n">config</span><span class="o">:</span>        <span class="n">config</span><span class="p">,</span>
+			<span class="n">fifoFd</span><span class="o">:</span>        <span class="n">fifoFd</span><span class="p">,</span>
+		<span class="p">},</span> <span class="no">nil</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"unknown init type %q"</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>然后执行 linuxStandardInit.Init()（github.com/opencontainers/runc/libcontainer/standard_init_linux.go#47）：</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">l</span> <span class="o">*</span><span class="n">linuxStandardInit</span><span class="p">)</span> <span class="n">Init</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="c">// 这里比较重要的是这个函数，此时各个 Namespace 虽然都挂载完毕了，但是当前的进程的视角里根目录和容器外是一样的</span>
+    <span class="c">// 因此这个方法会挂载设备，bind mount，然后将当前根目录切换到容器的根目录下。</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">prepareRootfs</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">pipe</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">config</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">err</span>
+	<span class="p">}</span>
+
+	<span class="c">// 设置 root (/) 为只读</span>
+	<span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">Namespaces</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">configs</span><span class="o">.</span><span class="n">NEWNS</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">finalizeRootfs</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="n">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="c">// 在完成一系列容器内的环境准备之后，通过 execve 执行容器内的 entrypoint</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">syscall</span><span class="o">.</span><span class="n">Exec</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Args</span><span class="p">[</span><span class="m">0</span><span class="o">:</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">Environ</span><span class="p">());</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">newSystemErrorWithCause</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">"exec user process"</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="no">nil</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>总结：</p>
+<ul>
+  <li>runc init 一个会有三个进程
+    <ul>
+      <li>第一个进程读取 bootstrapData，并完成第二个进程的 user map 的设置</li>
+      <li>第二个进程完成 namespace 的设置</li>
+      <li>第三个进程完成 CGROUP namesapce 的设置，并读取了 0x80 的同步信息。最后进入 go 代码。go 代码读取 container config，进行容器内环境准备，最后执行容器的 entrypoint</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="cve-2019-5736-过程分析">CVE-2019-5736 过程分析</h3>
+<p>链接：https://seclists.org/oss-sec/2019/q1/119</p>
+
+<p>通过构造一个恶意的容器，替换掉 runc 执行程序。runc 被再次执行时，恶意代码即可拿到 root 权限。</p>
+
+<p>过程：</p>
+<ol>
+  <li>在 runc init 的最后一个阶段，runc 会加载容器的 entrypoint</li>
+  <li>我们伪造一个容器，它具备以下两个要素：
+    <ul>
+      <li>entrypoint 链接到 /proc/self/exe</li>
+      <li>含有恶意代码的 libc.so（或者其他任意 so，只要会被 runc 加载就行）</li>
+    </ul>
+  </li>
+  <li>当 runc init 最后通过 execve 启动 entrypoint 时，由于 entrypoint 指向了 /proc/self/exe，那么实际上就等于执行了 runc 自身</li>
+  <li>runc init 被替换，但是容器内的 runc 启动了，由于现在 rootfs 已经是容器的 rootfs 了，所以 so 会从容器内加载，这样就会加载到含有恶意代码的 libc.so</li>
+  <li>libc.so 的恶意代码在 constructor 里，所以一加载这个 so，这个代码就会执行。恶意代码通过 open 系统调用去只读形式打开 /proc/self/exe（只能以只读形式，因为 runc 在运行），这个时候就会有一个对应的 fd 保留下来</li>
+  <li>恶意代码这个时候通过 execve 去执行容器内的一个程序，这样不会导致 PID 发生变化，但是程序改变了，并且 fd 继续保留了下来</li>
+  <li>程序的工作就是找到 fd 编号，就在 /proc/self/fd/ 中，然后再以写的方式重新打开这个 fd（这个时候因为 runc 已经退出了，所以可以以写的方式打开）。然后写入包含恶意代码的 runc。</li>
+  <li>在下次宿主机上的 runc 再被执行时，这个恶意代码即可执行，并且拥有 runc 的权限，即 root 权限。</li>
+</ol>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=runc 启动容器过程分析（附 CVE-2019-5736 实现过程）&url=/runc/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/runc/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/runc/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

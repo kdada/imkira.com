@@ -18,7 +18,7 @@
 " property="og:description">
   
   
-    <meta content="/" property="og:url">
+    <meta content="/page/3/" property="og:url">
   
   
   
@@ -34,7 +34,7 @@
     <meta name="twitter:title" content="Kira's Blog">
   
   
-    <meta name="twitter:url" content="/">
+    <meta name="twitter:url" content="/page/3/">
   
   
     <meta name="twitter:description" content="Author of Nirvana API Framewark. Focus on CloudNative technologies (Kubernetes, Prometheus, Serverless, ServiceMesh and etc).
@@ -112,31 +112,9 @@
   
   
   <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/runc/">runc 启动容器过程分析（附 CVE-2019-5736 实现过程）</a></h2>
-    <p>环境 OCI runtime spec 地址：https://github.com/opencontainers/runtime-spec runc 地址：https://github.com/opencontainers/runc/ Commit：f414f497b50a61750ea3af9fccf998a3db687cea 系统版本：Fedora Release 28 内核版本：4.17.9-200.fc28.x86_64 runc 介绍 runc...</p>
-    <span class="post-date">2019, Feb 15&nbsp;&nbsp;&nbsp;—&nbsp;</span>
-    <span class="post-words">22 minute read</span>
-  </div>
-</article>
-
-<article class="post">
-  
-  
-  <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/cri-o/">从源码部署基于 cri-o 的 Kubernetes 集群</a></h2>
-    <p>系统环境 系统版本：Fedora Release 28 内核版本：4.17.9-200.fc28.x86_64 从源码构建必要组件 安装依赖和工具： $ dnf install git go make libseccomp-devel gpgme-devel...</p>
-    <span class="post-date">2018, Aug 02&nbsp;&nbsp;&nbsp;—&nbsp;</span>
-    <span class="post-words">2 minute read</span>
-  </div>
-</article>
-
-<article class="post">
-  
-  
-  <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/Minimal-System-on-OSX/">在 OSX 上安装最小化 Linux 开发环境</a></h2>
-    <p>准备工具 Virtual Box 下载地址：https://www.virtualbox.org/wiki/Downloads Fedora Server 下载地址：https://getfedora.org/zh_CN/server/download/ 在 OSX 下安装一个无桌面的 Linux 开发环境。主要完成三个目标： 剪贴板共享 文件共享 使用...</p>
-    <span class="post-date">2018, Jul 23&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <h2 class="post-title"><a href="/imkira.com/netfiler-log/">CentOS 7 Linux netfilter 日志</a></h2>
+    <p>查看 netfilter ipv4 日志状态 cat /proc/sys/net/netfilter/nf_log/2 # 输出: nf_log_ipv4 如果输出是 NONE 那么说明没有配置日志，可以通过 sysctl 设置： modprobe...</p>
+    <span class="post-date">2016, Nov 17&nbsp;&nbsp;&nbsp;—&nbsp;</span>
     <span class="post-words">1 minute read</span>
   </div>
 </article>
@@ -145,20 +123,9 @@
   
   
   <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/Linux-Systemd-Deadlock/">Centos 7 systemd 死锁问题分析</a></h2>
-    <p>问题分析 系统信息： KERNEL: /lib/debug/lib/modules/3.10.0-693.el7.x86_64/vmlinux DUMPFILE: ./systemd-hang-c221v38/vmcore [PARTIAL DUMP] CPUS: 4 DATE: Mon Jun 11 14:23:55...</p>
-    <span class="post-date">2018, Jul 19&nbsp;&nbsp;&nbsp;—&nbsp;</span>
-    <span class="post-words">11 minute read</span>
-  </div>
-</article>
-
-<article class="post">
-  
-  
-  <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/HPA/">Kubernetes HPA 弹性伸缩规则</a></h2>
-    <p>基本规则： 每隔 30 秒循环检查一次所有 HPA（间隔可配置） 第一次自动伸缩完成后，记录伸缩时间 如果需要扩容，那么至少与上次伸缩时间间隔 3 分钟（可配置） 如果需要缩容，那么至少与上次伸缩时间间隔 5 分钟（可配置） 伸缩计算方法： 如果目标资源（比如 Deployment）的...</p>
-    <span class="post-date">2018, Apr 01&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <h2 class="post-title"><a href="/imkira.com/Harbor-HA-on-Kubernetes/">Harbor on Kubernetes 高可用方案</a></h2>
+    <p>Harbor 基本架构 Harbor 各个组件的用处： Nginx：负责请求转发。以 / v2 / 开始的 path 会被转发到 Registry 中，其它请求由 ui 处理...</p>
+    <span class="post-date">2016, Nov 16&nbsp;&nbsp;&nbsp;—&nbsp;</span>
     <span class="post-words">1 minute read</span>
   </div>
 </article>
@@ -167,9 +134,53 @@
   
   
   <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/Golang-Startup-Process/">Golang 的启动过程分析</a></h2>
-    <p>系统环境 系统版本： Fedora Release 25 内核版本：4.12.8-200.fc25.x86_64 GO: 1.10.1 linux/amd64 从二进制中查找 Entry Point 首先编译一个 go 的二进制程序（此处我编译的是...</p>
-    <span class="post-date">2017, Sep 30&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <h2 class="post-title"><a href="/imkira.com/Harbor-Auth-Token/">Harbor Auth Token 分析</a></h2>
+    <p>分析环境： harbor：https://github.com/vmware/harbor Tags：0.4.1 1.docker 鉴权请求分析 1.docker 直接 pull public repo，请求格式如下： /service/token?scope=repository:test/repo:pull&amp;service=token-service 2.docker pull private repo，请求格式如下：...</p>
+    <span class="post-date">2016, Oct 24&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <span class="post-words">8 minute read</span>
+  </div>
+</article>
+
+<article class="post">
+  
+  
+  <div class="post-content">
+    <h2 class="post-title"><a href="/imkira.com/Docker-Registery-Manifest/">Docker Registry manifest 分析</a></h2>
+    <p>分析环境： distribution：https://github.com/docker/distribution branch：release/2.5 1.imageManifestDispatcher imageManifestDispatcher 是注册在 App 内的 Dispatcher，实现了处理 Manifest 的方法的调度方法。Dispatcher 处理 /v2/{name}/manifests/{reference} 形式的请求（/registry/api/v2/desriptors.go#491），并生成对应于不同 Http...</p>
+    <span class="post-date">2016, Oct 20&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <span class="post-words">9 minute read</span>
+  </div>
+</article>
+
+<article class="post">
+  
+  
+  <div class="post-content">
+    <h2 class="post-title"><a href="/imkira.com/Docker-Registry-Authentication/">Docker Registry 鉴权验证分析</a></h2>
+    <p>分析环境： distribution：https://github.com/docker/distribution branch：release/2.5 1.Registry 启动 main 文件：/cmd/registry/main.go func main() { // 执行 RootCmd registry.RootCmd.Execute() }...</p>
+    <span class="post-date">2016, Oct 18&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <span class="post-words">8 minute read</span>
+  </div>
+</article>
+
+<article class="post">
+  
+  
+  <div class="post-content">
+    <h2 class="post-title"><a href="/imkira.com/Go-Runtime-Scheduler/">Go runtime 调度器</a></h2>
+    <p>分析环境: go:1.7 linux amd64 分析中使用的汇编相关的内容也是 64 位的, 例如栈顶寄存器 rsp 等 (32 位的是 esp,16 位的是 sp)...</p>
+    <span class="post-date">2016, Oct 08&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <span class="post-words">7 minute read</span>
+  </div>
+</article>
+
+<article class="post">
+  
+  
+  <div class="post-content">
+    <h2 class="post-title"><a href="/imkira.com/gulp/">gulp 自动化构建工具</a></h2>
+    <p>1.gulp 任务定义和执行顺序 // name(string): 任务名称 // deps(array): 依赖的其他任务数组 // fn(function): 任务执行函数 gulp.task(name[, deps], fn) 范例：...</p>
+    <span class="post-date">2016, Oct 06&nbsp;&nbsp;&nbsp;—&nbsp;</span>
     <span class="post-words">3 minute read</span>
   </div>
 </article>
@@ -178,20 +189,9 @@
   
   
   <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/Golang-runtime-getg/">Golang runtime.getg() 的实现</a></h2>
-    <p>系统环境 系统版本： Fedora Release 25 内核版本：4.12.8-200.fc25.x86_64 GO: 1.8.3 linux/amd64 runtime.getg() 这个函数用于获取当前正在执行的 goroutine 的信息（/usr/local/go/src/runtime/stubs.go#21）。 // getg...</p>
-    <span class="post-date">2017, Sep 30&nbsp;&nbsp;&nbsp;—&nbsp;</span>
-    <span class="post-words">1 minute read</span>
-  </div>
-</article>
-
-<article class="post">
-  
-  
-  <div class="post-content">
-    <h2 class="post-title"><a href="/imkira.com/QEMU-GDB-Linux-Kernel/">使用 QEMU 和 GDB 调试 Linux 内核 v4.12</a></h2>
-    <p>系统环境 系统版本： Fedora Release 25 内核版本：4.8.6-300-fc25.x86_64 QEMU：2.7.1-6.fc25 GDB：7.12-24.fc25 GCC： 6.2.1 MAKE： 4.1 编译内核 内核下载地址（目前最新版本为：v4.12-rc7）： git...</p>
-    <span class="post-date">2017, Jul 01&nbsp;&nbsp;&nbsp;—&nbsp;</span>
+    <h2 class="post-title"><a href="/imkira.com/crond/">cron 定时任务</a></h2>
+    <p>1. 查看 cron 状态（启动，关闭，重启） service crond status service crond start service crond stop service crond...</p>
+    <span class="post-date">2016, Oct 01&nbsp;&nbsp;&nbsp;—&nbsp;</span>
     <span class="post-words">2 minute read</span>
   </div>
 </article>
@@ -201,11 +201,15 @@
   <nav class="pagination" role="pagination">
     <ul>
       
+        
+        <p><a class="newer-posts" href="/imkira.com/page/2/"><i class="fa fa-long-arrow-left" aria-hidden="true"></i></a></p>
+        
+      
 
-      <p><span class="page-number">Page 1 of 4</span></p>
+      <p><span class="page-number">Page 3 of 4</span></p>
 
       
-      <p><a class="older-posts" href="/imkira.com/page/2/"><i class="fa fa-long-arrow-right" aria-hidden="true"></i></a></p>
+      <p><a class="older-posts" href="/imkira.com/page/4/"><i class="fa fa-long-arrow-right" aria-hidden="true"></i></a></p>
       
     </ul>
   </nav>

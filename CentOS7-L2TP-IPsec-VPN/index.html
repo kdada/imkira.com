@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Centos7 搭建 L2TP+ IPsec VPN - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Centos7 搭建 L2TP+ IPsec VPN" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="在 Centos7 中搭建 L2TP+ IPsec VPN" property="og:description">
+  
+  
+    <meta content="/CentOS7-L2TP-IPsec-VPN/" property="og:url">
+  
+  
+    <meta content="2016-12-02T19:44:35+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Linux" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Centos7 搭建 L2TP+ IPsec VPN">
+  
+  
+    <meta name="twitter:url" content="/CentOS7-L2TP-IPsec-VPN/">
+  
+  
+    <meta name="twitter:description" content="在 Centos7 中搭建 L2TP+ IPsec VPN">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="在 Centos7 中搭建 L2TP+ IPsec VPN">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Centos7 搭建 L2TP+ IPsec VPN</h1>
+        <div class="page-date"><span>2016, Dec 02&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="软件说明">软件说明：</h4>
+<ul>
+  <li>ppp：提供用户名密码验证功能，实现 VPN 的用户账号密码验证</li>
+  <li>libreswan：提供 IPsec 功能，加密 IP 数据包</li>
+  <li>xl2tpd：提供 VPN 功能，依赖于 ppp 和 libreswan</li>
+</ul>
+
+<h4 id="系统环境">系统环境：</h4>
+<ul>
+  <li>Centos 7</li>
+  <li>Linux 3.10.0-327.36.3.el7.x86_64</li>
+  <li>ppp 2.4.5（系统自带，不需要额外安装）</li>
+  <li>libreswan 3.15（需要安装）</li>
+  <li>xl2tpd 1.3.6（需要安装）</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum install -y libreswan xl2tpd
+</code></pre></div></div>
+
+<h4 id="vpn-配置">VPN 配置</h4>
+<h5 id="1-配置-ipseclibreswan">1. 配置 IPsec（libreswan）</h5>
+<p>虽然可以直接在 <em>/etc/ipsec.conf</em> 中进行配置，但是最好 <em>/etc/ipsec.d/</em> 创建一个新的配置文件，只要扩展名为 <em>.conf</em> 即可。</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 创建一个新的配置文件
+vi /etc/ipsec.d/vpn.conf
+</code></pre></div></div>
+<p>配置内容如下：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>conn L2TP-PSK-NAT
+    rightsubnet=vhost:%priv
+    also=L2TP-PSK-noNAT
+
+conn L2TP-PSK-noNAT
+    authby=secret
+    pfs=no
+    auto=add
+    keyingtries=3
+    rekey=no
+    ikelifetime=8h
+    keylife=1h
+    type=transport
+    left = 这里填写服务器的外网 IP
+    leftprotoport=17/1701
+    right=%any
+    rightprotoport=17/%any
+</code></pre></div></div>
+<p>在 <em>/etc/ipsec.d/</em> 中有个默认的配置文件，不过是 IPv6 的，可以删除或者改个名字让其无效（这一步可做可不做）：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mv v6neighbor-hole.conf v6neighbor-hole.conf_bak
+</code></pre></div></div>
+<p>接下来设置 IPsec 的 Shared Key，这个 key 是 IPsec 的密钥，VPN 两端都会使用这个 key 来对 IP 数据包加密，防止数据包内容泄漏。<br />
+同样的，可以在 <em>/etc/ipsec.secrets</em> 文件中直接设置密钥，但是最好在 <em>/etc/ipsec.d/</em> 创建一个新的密钥文件，只要扩展名是 <em>.secrets</em> 即可。</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vi /etc/ipsec.d/vpn.secrets
+</code></pre></div></div>
+<p>密钥设置格式如下（以 #开头的部分不需要写进文件里）：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 例如：
+# 11.22.33.44 %any: PSK "1234"
+这里填写服务器的外网 IP %any: PSK "这里填写一个字符串作为密钥"
+</code></pre></div></div>
+<p>PSK 是 Password Shared Key，即使用密码作为密钥。也可以使用其他类型的 Shared Key，参考 <em>libreswan</em> 官方文档。</p>
+
+<p>接下来可以启动 IPsec，并且设置为开机自动启动：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 开机启动
+systemctl enable ipsec
+# 启动服务
+systemctl start ipsec
+</code></pre></div></div>
+<p>启动 IPsec 后，还需要对 IPsec 进行验证，以确保 IPsec 能够正常工作：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ipsec verify
+
+# 输出如下：
+Verifying installed system and configuration files
+
+Version check and ipsec on-path                   	[OK]
+Libreswan 3.15 (netkey) on 3.10.0-327.36.3.el7.x86_64
+Checking for IPsec support in kernel              	[OK]
+ NETKEY: Testing XFRM related proc values
+         ICMP default/send_redirects              	[NOT DISABLED]
+
+  Disable /proc/sys/net/ipv4/conf/*/send_redirects or NETKEY will act on or cause sending of bogus ICMP redirects!
+
+         ICMP default/accept_redirects            	[NOT DISABLED]
+
+  Disable /proc/sys/net/ipv4/conf/*/accept_redirects or NETKEY will act on or cause sending of bogus ICMP redirects!
+
+         XFRM larval drop                         	[OK]
+Pluto ipsec.conf syntax                           	[OK]
+Hardware random device                            	[N/A]
+Two or more interfaces found, checking IP forwarding	[OK]
+Checking rp_filter                                	[OK]
+Checking that pluto is running                    	[OK]
+ Pluto listening for IKE on udp 500               	[OK]
+ Pluto listening for IKE/NAT-T on udp 4500        	[OK]
+ Pluto ipsec.secret syntax                        	[OK]
+Checking 'ip' command                             	[OK]
+Checking 'iptables' command                       	[OK]
+Checking 'prelink' command does not interfere with FIPSChecking for obsolete ipsec.conf options          	[OK]
+Opportunistic Encryption                          	[DISABLED]
+
+ipsec verify: encountered 2 errors - see 'man ipsec_verify' for help
+
+</code></pre></div></div>
+<p>验证结果中会出现 <em>OK</em>，<em>DISABLED</em>，<em>NOT DISABLED</em>。但是这里看不出这些字母颜色的区别，在 shell 中，分为绿色和红色两种颜色。绿色表示这一项检查通过，红色表示不通过需要修改。在上面的输出中，两个 <em>NOT DISABLED</em> 的项是红色的，需要处理。</p>
+
+<p>根据提示，需要关闭 send_redirects 和 accept_redirects：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 查看这两个下的所有选项
+# 根据网卡数量，选项个数无法确定
+# 其中也可能会包含 IPv6 的选项，IPv6 的不需要改
+sysctl -a |grep -e 'send_redirects'
+sysctl -a |grep -e 'accept_redirects'
+</code></pre></div></div>
+<p>可以直接通过下面的脚本把上面显示的所有 IPv4 的选项全部设置为 0 ：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+<span class="k">for </span>each <span class="k">in</span> /proc/sys/net/ipv4/conf/<span class="k">*</span>
+<span class="k">do
+    </span><span class="nb">echo </span>0 <span class="o">&gt;</span> <span class="nv">$each</span>/send_redirects
+    <span class="nb">echo </span>0 <span class="o">&gt;</span> <span class="nv">$each</span>/accept_redirects
+<span class="k">done</span>
+</code></pre></div></div>
+<p>修改完成后，再进行一次 <em>ipsec</em> 验证即可看到结果，所有的输出项都会变成绿色。如果仍然有红色的部分，根据提示设置即可。</p>
+
+<p>开启 IPv4 的 ip_forward，这个选项用于做 IP 包的转发：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sysctl net.ipv4.ip_forward=1
+</code></pre></div></div>
+
+<h5 id="2-配置-xl2tpd">2. 配置 xl2tpd</h5>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vi /etc/xl2tpd/xl2tpd.conf
+</code></pre></div></div>
+<p>主要修改配置文件中的 ip range 和 local ip：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 注意这个 ip range 不要与本地 ip 和服务器的其他 ip 冲突
+# 这是一个例子：
+ip range = 192.168.79.100-192.168.79.200
+local ip = 192.168.79.1
+</code></pre></div></div>
+<p>在 <em>/etc/xl2tpd/xl2tpd.conf</em> 中的能看到：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pppoptfile = /etc/ppp/options.xl2tpd
+</code></pre></div></div>
+<p>表示引用了 ppp 的配置文件，可以通过这个配置文件修改 ppp 的设置：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vi /etc/ppp/options.xl2tpd
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 修改 ms-dns，可以修改为其他合适的 dns 地址
+ms-dns 114.114.114.114
+
+# 增加 require-mschap-v2 选项，否则 windows 无法连接
+require-mschap-v2
+
+</code></pre></div></div>
+
+<p>设置 ppp 的账号密码：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 按文件中说明填写用户名密码即可
+# 例如
+# 用户名	*	密码 	*
+vi /etc/ppp/chap-secrets
+</code></pre></div></div>
+<p>这里第二列是服务名，* 的意思是任何服务都可以使用，默认使用这个即可。</p>
+
+<p>接下来可以启动 xl2tpd，并且设置为开机自动启动：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 开机启动
+systemctl enable xl2tpd
+# 启动服务
+systemctl start xl2tpd
+</code></pre></div></div>
+
+<p>如果需要查看 xl2tpd 的日志，可以不使用上面的启动方法，直接使用：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>xl2tpd -D
+</code></pre></div></div>
+
+<h4 id="配置防火墙">配置防火墙</h4>
+<p>使用 iptables 作为范例：</p>
+<ul>
+  <li>需要打开 500，4500，1701 三个端口的 udp 通信
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t filter -A INPUT -p udp -m multiport --dports 500,4500,1701 -j ACCEPT
+</code></pre></div>    </div>
+  </li>
+  <li>打开转发时的地址伪装
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t nat -A POSTROUTING -j MASQUERADE
+</code></pre></div>    </div>
+  </li>
+  <li>允许已经建立的链接的包进入服务器
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t filter -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Centos7 搭建 L2TP+ IPsec VPN&url=/CentOS7-L2TP-IPsec-VPN/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/CentOS7-L2TP-IPsec-VPN/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/CentOS7-L2TP-IPsec-VPN/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Linux" class="tag">&#35; Linux</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

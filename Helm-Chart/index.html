@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Helm Chart 结构 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Helm Chart 结构" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Kubernetes Helm Chart 介绍" property="og:description">
+  
+  
+    <meta content="/Helm-Chart/" property="og:url">
+  
+  
+    <meta content="2016-11-24T04:03:37+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Helm" property="article:tag">
+    
+    <meta content="Kubernetes" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Helm Chart 结构">
+  
+  
+    <meta name="twitter:url" content="/Helm-Chart/">
+  
+  
+    <meta name="twitter:description" content="Kubernetes Helm Chart 介绍">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Kubernetes Helm Chart 介绍">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Helm Chart 结构</h1>
+        <div class="page-date"><span>2016, Nov 24&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="chart-目录结构">Chart 目录结构</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>examples/
+  Chart.yaml          # Yaml 文件，用于描述 Chart 的基本信息，包括名称版本等
+  LICENSE             # [可选] 协议
+  README.md           # [可选] 当前 Chart 的介绍
+  values.yaml         # Chart 的默认配置文件
+  requirements.yaml   # [可选] 用于存放当前 Chart 依赖的其它 Chart 的说明文件
+  charts/             # [可选]: 该目录中放置当前 Chart 依赖的其它 Chart
+  templates/          # [可选]: 部署文件模版目录，模版使用的值来自 values.yaml 和由 Tiller 提供的值
+  templates/NOTES.txt # [可选]: 放置 Chart 的使用指南
+</code></pre></div></div>
+
+<h4 id="chartyaml-文件">Chart.yaml 文件</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>name: [必须] Chart 的名称
+version: [必须] Chart 的版本号，版本号必须符合 SemVer 2：http://semver.org/
+description: [可选] Chart 的简要描述
+keywords:
+  -  [可选] 关键字列表
+home: [可选] 项目地址
+sources:
+  - [可选] 当前 Chart 的下载地址列表
+maintainers: # [可选]
+  - name: [必须] 名字
+    email: [可选] 邮箱
+engine: gotpl # [可选] 模版引擎，默认值是 gotpl
+icon: [可选] 一个 SVG 或 PNG 格式的图片地址
+</code></pre></div></div>
+
+<h4 id="requirementsyaml-和-charts-目录">requirements.yaml 和 charts 目录</h4>
+<p>requirements.yaml 文件内容：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dependencies:
+  - name: example
+    version: 1.2.3
+    repository: http://example.com/charts
+  - name: Chart 名称
+    version: Chart 版本
+    repository: 该 Chart 所在的仓库地址
+</code></pre></div></div>
+<p>Chart 支持两种方式表示依赖关系，可以使用 requirements.yaml 或者直接将依赖的 Chart 放置到 charts 目录中。</p>
+
+<h4 id="templates-目录">templates 目录</h4>
+<p>templates 目录中存放了 Kubernetes 部署文件的模版。<br />
+例如：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># db.yaml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: deis-database
+  namespace: deis
+  labels:
+    heritage: deis
+spec:
+  replicas: 1
+  selector:
+    app: deis-database
+  template:
+    metadata:
+      labels:
+        app: deis-database
+    spec:
+      serviceAccount: deis-database
+      containers:
+        - name: deis-database
+          image: /postgres:
+          imagePullPolicy: 
+          ports:
+            - containerPort: 5432
+          env:
+            - name: DATABASE_STORAGE
+              value: 
+</code></pre></div></div>
+<p>模版语法扩展了 golang/text/template 的语法：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 这种方式定义的模版，会去除 test 模版尾部所有的空行
+模版内容
+
+# 去除 test 模版头部的第一个空行
+</code></pre></div></div>
+<p>用于 yaml 文件前置空格的语法：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 这种方式定义的模版，会去除 test 模版头部和尾部所有的空行模版内容# 可以在 test 模版每一行的头部增加 4 个空格，用于 yaml 文件的对齐
+
+
+</code></pre></div></div>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Helm Chart 结构&url=/Helm-Chart/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Helm-Chart/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Helm-Chart/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Helm" class="tag">&#35; Helm</a>
+          
+            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>

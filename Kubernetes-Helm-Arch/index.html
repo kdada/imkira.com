@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Kubernetes Helm 架构 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Kubernetes Helm 架构" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Kubernetes Helm 架构介绍" property="og:description">
+  
+  
+    <meta content="/Kubernetes-Helm-Arch/" property="og:url">
+  
+  
+    <meta content="2016-11-24T03:34:03+00:00" property="article:published_time">
+    <meta content="/about/" property="article:author">
+  
+  
+    <meta content="/imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Helm" property="article:tag">
+    
+    <meta content="Kubernetes" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Kubernetes Helm 架构">
+  
+  
+    <meta name="twitter:url" content="/Kubernetes-Helm-Arch/">
+  
+  
+    <meta name="twitter:description" content="Kubernetes Helm 架构介绍">
+  
+  
+    <meta name="twitter:image:src" content="/imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Kubernetes Helm 架构介绍">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/imkira.com/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/imkira.com/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/imkira.com/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/imkira.com/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/imkira.com/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/imkira.com/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/imkira.com/"><img src="/imkira.com/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2019 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Kubernetes Helm 架构</h1>
+        <div class="page-date"><span>2016, Nov 24&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h4 id="helm-chart-简介">Helm Chart 简介</h4>
+<p>Helm 是一个用于 Kubernetes 的包管理工具。<br />
+每个包称为一个 Chart，一个 Chart 是一个目录（一般情况下会将目录进行打包压缩，形成 name-version.tgz 格式的单一文件，方便传输和存储）。<br />
+一个 Chart 是 Kubernetes 部署文件的集合，使用 Chart 可以方便的在 Kubernetes 中部署一组应用。</p>
+
+<h4 id="helm-组件">Helm 组件</h4>
+<h5 id="helm">Helm：</h5>
+<p>Helm 是一个 cli 客户端，可以完成如下内容：</p>
+<ul>
+  <li>创建 Chart</li>
+  <li>打包 Chart，打包成 name-version.tgz 格式</li>
+  <li>调试 Chart</li>
+  <li>创建本地 Chart 仓库</li>
+  <li>管理本地和远程 Chart 仓库</li>
+  <li>与 Tiller 通信并完成 Chart 的安装，升级，删除，回滚，查看等操作</li>
+</ul>
+
+<h5 id="tiller">Tiller</h5>
+<p>Tiller 是一个 Chart 管理服务端，Tiller 接收 Helm 的请求，并根据 Chart 生成 Kubernetes 的部署文件（称为一个 Release），然后提交给 Kubernetes 创建应用。<br />
+Tiller 有如下功能：</p>
+<ul>
+  <li>监听来自 Helm 的请求</li>
+  <li>根据请求提交的 Chart 与 Config 生成一个 Release</li>
+  <li>将 Release 提交给 Kubernetes，并且跟踪 Release 的状态</li>
+  <li>提供 Release 的升级，删除，回滚等功能</li>
+</ul>
+
+<h4 id="helm-通信过程">Helm 通信过程</h4>
+<p><img src="/imkira.com/assets/img/helm-tiller-arch.png" alt="Helm 过程" /></p>
+
+<p>Chart Install 过程：</p>
+<ol>
+  <li>Helm 从指定的目录或者 tgz 文件中解析出 Chart 结构信息</li>
+  <li>Helm 将指定的 Chart 结构和 Values 信息通过 gRPC 传递给 Tiller</li>
+  <li>Tiller 根据 Chart 和 Values 生成一个 Release</li>
+  <li>Tiller 将 Release 发送给 Kubernetes 用于生成 Release</li>
+</ol>
+
+<p>Chart Update 过程：</p>
+<ol>
+  <li>Helm 从指定的目录或者 tgz 文件中解析出 Chart 结构信息</li>
+  <li>Helm 将要更新的 Release 的名称和 Chart 结构，Values 信息传递给 Tiller</li>
+  <li>Tiller 生成 Release 并更新指定名称的 Release 的 History</li>
+  <li>Tiller 将 Release 发送给 Kubernetes 用于更新 Release</li>
+</ol>
+
+<p>Chart Rollback 过程：</p>
+<ol>
+  <li>Helm 将要回滚的 Release 的名称传递给 Tiller</li>
+  <li>Tiller 根据 Release 的名称查找 History</li>
+  <li>Tiller 从 History 中获取上一个 Release</li>
+  <li>Tiller 将上一个 Release 发送给 Kubernetes 用于替换当前 Release</li>
+</ol>
+
+<p>**Chart 依赖说明 **：<br />
+Tiller 在处理 Chart 时，直接将 Chart 以及其依赖的所有 Charts 合并为一个 Release，同时传递给 Kubernetes。因此 Tiller 并不负责管理依赖之间的启动顺序。Chart 中的应用需要能够自行处理依赖关系。</p>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Kubernetes Helm 架构&url=/Kubernetes-Helm-Arch/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=/Kubernetes-Helm-Arch/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=/Kubernetes-Helm-Arch/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/imkira.com/tags#Helm" class="tag">&#35; Helm</a>
+          
+            <a href="/imkira.com/tags#Kubernetes" class="tag">&#35; Kubernetes</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>
