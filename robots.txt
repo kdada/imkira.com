@@ -1,1 +1,1 @@
-Sitemap: http://imkira.com/sitemap.xml
+Sitemap: https://imkira.com/sitemap.xml
