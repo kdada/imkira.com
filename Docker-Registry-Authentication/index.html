@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Registry鉴权验证分析 - Kira's Blog</title>
+	<title>Docker Registry 鉴权验证分析 - Kira's Blog</title>
 
   <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
 
     <meta content="Kira's Blog" property="og:site_name">
   
-    <meta content="Registry鉴权验证分析" property="og:title">
+    <meta content="Docker Registry 鉴权验证分析" property="og:title">
   
   
     <meta content="article" property="og:type">
@@ -39,7 +39,7 @@
     <meta name="twitter:site" content="@">
     <meta name="twitter:creator" content="@">
   
-    <meta name="twitter:title" content="Registry鉴权验证分析">
+    <meta name="twitter:title" content="Docker Registry 鉴权验证分析">
   
   
     <meta name="twitter:url" content="/Docker-Registry-Authentication/">
@@ -120,41 +120,41 @@
     
     <div class="wrap-content">
       <header class="header-page">
-        <h1 class="page-title">Registry鉴权验证分析</h1>
+        <h1 class="page-title">Docker Registry 鉴权验证分析</h1>
         <div class="page-date"><span>2016, Oct 18&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
       </header>
       <h4 id="分析环境">分析环境：</h4>
 <p>distribution：https://github.com/docker/distribution<br />
 branch：release/2.5</p>
 
-<h4 id="1registry启动">1.Registry启动</h4>
-<h5 id="main文件cmdregistrymaingo">main文件：/cmd/registry/main.go</h5>
+<h4 id="1registry-启动">1.Registry 启动</h4>
+<h5 id="main-文件cmdregistrymaingo">main 文件：/cmd/registry/main.go</h5>
 <div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c">//执行RootCmd</span>
+    <span class="c">// 执行 RootCmd</span>
     <span class="n">registry</span><span class="o">.</span><span class="n">RootCmd</span><span class="o">.</span><span class="n">Execute</span><span class="p">()</span>
 <span class="p">}</span>
 </code></pre></div></div>
 <h5 id="rootcmdregistryrootgo">RootCmd：/registry/root.go</h5>
-<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">//registry包初始化函数</span>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">//registry 包初始化函数</span>
 <span class="k">func</span> <span class="n">init</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c">//将serve命令添加到Root命令中</span>
-    <span class="c">//可以通过 registry serve 使用serve命令</span>
-    <span class="c">//registry是编译后的生成的二进制文件,可能是其他名称</span>
+    <span class="c">// 将 serve 命令添加到 Root 命令中</span>
+    <span class="c">// 可以通过 registry serve 使用 serve 命令</span>
+    <span class="c">//registry 是编译后的生成的二进制文件, 可能是其他名称</span>
     <span class="n">RootCmd</span><span class="o">.</span><span class="n">AddCommand</span><span class="p">(</span><span class="n">ServeCmd</span><span class="p">)</span>
     <span class="o">...</span>
 <span class="p">}</span>
 
 <span class="c">// RootCmd is the main command for the 'registry' binary.</span>
-<span class="c">// RootCmd是registry应用的根命令</span>
+<span class="c">// RootCmd 是 registry 应用的根命令</span>
 <span class="k">var</span> <span class="n">RootCmd</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">cobra</span><span class="o">.</span><span class="n">Command</span><span class="p">{</span>
     <span class="o">...</span>
 <span class="p">}</span>
 </code></pre></div></div>
 <h5 id="servecmdregistryregistrygo">ServeCmd：/registry/registry.go</h5>
 <div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// ServeCmd is a cobra command for running the registry.</span>
-<span class="c">// ServeCmd 用于启动registry</span>
+<span class="c">// ServeCmd 用于启动 registry</span>
 <span class="k">var</span> <span class="n">ServeCmd</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">cobra</span><span class="o">.</span><span class="n">Command</span><span class="p">{</span>
-    <span class="c">// serve命令需要指定配置文件</span>
+    <span class="c">// serve 命令需要指定配置文件</span>
     <span class="n">Use</span><span class="o">:</span>   <span class="s">"serve &lt;config&gt;"</span><span class="p">,</span>
     <span class="n">Short</span><span class="o">:</span> <span class="s">"`serve` stores and distributes Docker images"</span><span class="p">,</span>
     <span class="n">Long</span><span class="o">:</span>  <span class="s">"`serve` stores and distributes Docker images."</span><span class="p">,</span>
@@ -162,14 +162,14 @@ branch：release/2.5</p>
 
         <span class="c">// setup context</span>
         <span class="n">ctx</span> <span class="o">:=</span> <span class="n">context</span><span class="o">.</span><span class="n">WithVersion</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">Background</span><span class="p">(),</span> <span class="n">version</span><span class="o">.</span><span class="n">Version</span><span class="p">)</span>
-        <span class="c">//解析配置文件并生成配置</span>
+        <span class="c">// 解析配置文件并生成配置</span>
         <span class="n">config</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">resolveConfiguration</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
             <span class="n">fmt</span><span class="o">.</span><span class="n">Fprintf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">Stderr</span><span class="p">,</span> <span class="s">"configuration error: %v</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="n">cmd</span><span class="o">.</span><span class="n">Usage</span><span class="p">()</span>
             <span class="n">os</span><span class="o">.</span><span class="n">Exit</span><span class="p">(</span><span class="m">1</span><span class="p">)</span>
         <span class="p">}</span>
-        <span class="c">//检查是否开启调试模式</span>
+        <span class="c">// 检查是否开启调试模式</span>
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">HTTP</span><span class="o">.</span><span class="n">Debug</span><span class="o">.</span><span class="n">Addr</span> <span class="o">!=</span> <span class="s">""</span> <span class="p">{</span>
             <span class="k">go</span> <span class="k">func</span><span class="p">(</span><span class="n">addr</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
                 <span class="n">log</span><span class="o">.</span><span class="n">Infof</span><span class="p">(</span><span class="s">"debug server listening %v"</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span>
@@ -178,19 +178,19 @@ branch：release/2.5</p>
                 <span class="p">}</span>
             <span class="p">}(</span><span class="n">config</span><span class="o">.</span><span class="n">HTTP</span><span class="o">.</span><span class="n">Debug</span><span class="o">.</span><span class="n">Addr</span><span class="p">)</span>
         <span class="p">}</span>
-        <span class="c">//创建registry实例</span>
+        <span class="c">// 创建 registry 实例</span>
         <span class="n">registry</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">NewRegistry</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
             <span class="n">log</span><span class="o">.</span><span class="n">Fatalln</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
         <span class="p">}</span>
-        <span class="c">//registry启动,启动后即可接受docker daemon的请求</span>
+        <span class="c">//registry 启动, 启动后即可接受 docker daemon 的请求</span>
         <span class="k">if</span> <span class="n">err</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">ListenAndServe</span><span class="p">();</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
             <span class="n">log</span><span class="o">.</span><span class="n">Fatalln</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
         <span class="p">}</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </code></pre></div></div>
-<h4 id="2registry分析">2.Registry分析</h4>
+<h4 id="2registry-分析">2.Registry 分析</h4>
 <h5 id="registryregistryregistrygo68">Registry：/registry/registry.go#68</h5>
 <div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Registry</span> <span class="k">struct</span> <span class="p">{</span>
     <span class="n">config</span> <span class="o">*</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span>
@@ -198,13 +198,13 @@ branch：release/2.5</p>
     <span class="n">server</span> <span class="o">*</span><span class="n">http</span><span class="o">.</span><span class="n">Server</span>
 <span class="p">}</span>
 
-<span class="c">// NewRegistry 根据指定的Context和Configuration创建registry实例</span>
+<span class="c">// NewRegistry 根据指定的 Context 和 Configuration 创建 registry 实例</span>
 <span class="k">func</span> <span class="n">NewRegistry</span><span class="p">(</span><span class="n">ctx</span> <span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span> <span class="o">*</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="n">Registry</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
     <span class="o">...</span>
-    <span class="c">//根据配置创建App(包含多个handler),鉴权验证在app中处理</span>
+    <span class="c">// 根据配置创建 App(包含多个 handler), 鉴权验证在 app 中处理</span>
     <span class="n">app</span> <span class="o">:=</span> <span class="n">handlers</span><span class="o">.</span><span class="n">NewApp</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
 
-    <span class="c">//对app的ServeHTTP进行多层的包装</span>
+    <span class="c">// 对 app 的 ServeHTTP 进行多层的包装</span>
     <span class="n">app</span><span class="o">.</span><span class="n">RegisterHealthChecks</span><span class="p">()</span>
     <span class="n">handler</span> <span class="o">:=</span> <span class="n">configureReporting</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
     <span class="n">handler</span> <span class="o">=</span> <span class="n">alive</span><span class="p">(</span><span class="s">"/"</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
@@ -212,7 +212,7 @@ branch：release/2.5</p>
     <span class="n">handler</span> <span class="o">=</span> <span class="n">panicHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
     <span class="n">handler</span> <span class="o">=</span> <span class="n">gorhandlers</span><span class="o">.</span><span class="n">CombinedLoggingHandler</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">Stdout</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
 
-    <span class="c">//创建http服务</span>
+    <span class="c">// 创建 http 服务</span>
     <span class="n">server</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">http</span><span class="o">.</span><span class="n">Server</span><span class="p">{</span>
         <span class="n">Handler</span><span class="o">:</span> <span class="n">handler</span><span class="p">,</span>
     <span class="p">}</span>
@@ -228,10 +228,10 @@ branch：release/2.5</p>
 <div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// NewApp takes a configuration and returns a configured app, ready to serve</span>
 <span class="c">// requests. The app only implements ServeHTTP and can be wrapped in other</span>
 <span class="c">// handlers accordingly.</span>
-<span class="c">// NewApp根据配置生成App实例,App实例拥有ServeHTTP函数,可以处理相应的http请求</span>
+<span class="c">// NewApp 根据配置生成 App 实例, App 实例拥有 ServeHTTP 函数, 可以处理相应的 http 请求</span>
 <span class="k">func</span> <span class="n">NewApp</span><span class="p">(</span><span class="n">ctx</span> <span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span> <span class="o">*</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">)</span> <span class="o">*</span><span class="n">App</span> <span class="p">{</span>
 
-    <span class="c">//在app中注册系列路由</span>
+    <span class="c">// 在 app 中注册系列路由</span>
     <span class="n">app</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">v2</span><span class="o">.</span><span class="n">RouteNameBase</span><span class="p">,</span> <span class="k">func</span><span class="p">(</span><span class="n">ctx</span> <span class="o">*</span><span class="n">Context</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span><span class="n">http</span><span class="o">.</span><span class="n">Request</span><span class="p">)</span> <span class="n">http</span><span class="o">.</span><span class="n">Handler</span> <span class="p">{</span>
         <span class="k">return</span> <span class="n">http</span><span class="o">.</span><span class="n">HandlerFunc</span><span class="p">(</span><span class="n">apiBase</span><span class="p">)</span>
     <span class="p">})</span>
@@ -242,60 +242,60 @@ branch：release/2.5</p>
     <span class="n">app</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">v2</span><span class="o">.</span><span class="n">RouteNameBlobUpload</span><span class="p">,</span> <span class="n">blobUploadDispatcher</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">v2</span><span class="o">.</span><span class="n">RouteNameBlobUploadChunk</span><span class="p">,</span> <span class="n">blobUploadDispatcher</span><span class="p">)</span>
     <span class="o">...</span>
-    <span class="c">//从配置文件中读取鉴权验证类型 #262</span>
+    <span class="c">// 从配置文件中读取鉴权验证类型 #262</span>
     <span class="n">authType</span> <span class="o">:=</span> <span class="n">config</span><span class="o">.</span><span class="n">Auth</span><span class="o">.</span><span class="n">Type</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">authType</span> <span class="o">!=</span> <span class="s">""</span> <span class="p">{</span>
-        <span class="c">//获取指定authType的访问控制器</span>
+        <span class="c">// 获取指定 authType 的访问控制器</span>
         <span class="n">accessController</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">auth</span><span class="o">.</span><span class="n">GetAccessController</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Auth</span><span class="o">.</span><span class="n">Type</span><span class="p">(),</span> <span class="n">config</span><span class="o">.</span><span class="n">Auth</span><span class="o">.</span><span class="n">Parameters</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
             <span class="nb">panic</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"unable to configure authorization (%s): %v"</span><span class="p">,</span> <span class="n">authType</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="p">}</span>
-        <span class="c">//设置app的accessController属性</span>
+        <span class="c">// 设置 app 的 accessController 属性</span>
         <span class="n">app</span><span class="o">.</span><span class="n">accessController</span> <span class="o">=</span> <span class="n">accessController</span>
         <span class="n">ctxu</span><span class="o">.</span><span class="n">GetLogger</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="n">Debugf</span><span class="p">(</span><span class="s">"configured %q access controller"</span><span class="p">,</span> <span class="n">authType</span><span class="p">)</span>
     <span class="p">}</span>
     <span class="o">...</span>
 <span class="p">}</span>
 
-<span class="c">//注册routeName路由,并使用app.dispatcher方法对dispatch方法进行包装</span>
+<span class="c">// 注册 routeName 路由, 并使用 app.dispatcher 方法对 dispatch 方法进行包装</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">app</span> <span class="o">*</span><span class="n">App</span><span class="p">)</span> <span class="n">register</span><span class="p">(</span><span class="n">routeName</span> <span class="kt">string</span><span class="p">,</span> <span class="n">dispatch</span> <span class="n">dispatchFunc</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">GetRoute</span><span class="p">(</span><span class="n">routeName</span><span class="p">)</span><span class="o">.</span><span class="n">Handler</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">dispatcher</span><span class="p">(</span><span class="n">dispatch</span><span class="p">))</span>
 <span class="p">}</span>
 
-<span class="c">//包装dispatch为http.Handler</span>
+<span class="c">// 包装 dispatch 为 http.Handler</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">app</span> <span class="o">*</span><span class="n">App</span><span class="p">)</span> <span class="n">dispatcher</span><span class="p">(</span><span class="n">dispatch</span> <span class="n">dispatchFunc</span><span class="p">)</span> <span class="n">http</span><span class="o">.</span><span class="n">Handler</span> <span class="p">{</span>
     <span class="k">return</span> <span class="n">http</span><span class="o">.</span><span class="n">HandlerFunc</span><span class="p">(</span><span class="k">func</span><span class="p">(</span><span class="n">w</span> <span class="n">http</span><span class="o">.</span><span class="n">ResponseWriter</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span><span class="n">http</span><span class="o">.</span><span class="n">Request</span><span class="p">)</span> <span class="p">{</span>
         <span class="o">...</span>
-        <span class="c">//对请求进行authorized验证</span>
+        <span class="c">// 对请求进行 authorized 验证</span>
         <span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">app</span><span class="o">.</span><span class="n">authorized</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
             <span class="n">ctxu</span><span class="o">.</span><span class="n">GetLogger</span><span class="p">(</span><span class="n">context</span><span class="p">)</span><span class="o">.</span><span class="n">Warnf</span><span class="p">(</span><span class="s">"error authorizing context: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="p">}</span>
         <span class="o">...</span>
-        <span class="c">//调用真正的dispatch方法</span>
+        <span class="c">// 调用真正的 dispatch 方法</span>
         <span class="n">dispatch</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">ServeHTTP</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
         <span class="o">...</span>
     <span class="p">})</span>
 <span class="p">}</span>
 
-<span class="c">//鉴权验证方法</span>
+<span class="c">// 鉴权验证方法</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">app</span> <span class="o">*</span><span class="n">App</span><span class="p">)</span> <span class="n">authorized</span><span class="p">(</span><span class="n">w</span> <span class="n">http</span><span class="o">.</span><span class="n">ResponseWriter</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span><span class="n">http</span><span class="o">.</span><span class="n">Request</span><span class="p">,</span> <span class="n">context</span> <span class="o">*</span><span class="n">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
     <span class="o">...</span>
-    <span class="c">//app.accessController是App创建时根据配置文件生成的</span>
-    <span class="c">//调用app.accessController.Authorized方法进行验证</span>
+    <span class="c">//app.accessController 是 App 创建时根据配置文件生成的</span>
+    <span class="c">// 调用 app.accessController.Authorized 方法进行验证</span>
     <span class="n">ctx</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">app</span><span class="o">.</span><span class="n">accessController</span><span class="o">.</span><span class="n">Authorized</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">accessRecords</span><span class="o">...</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
         <span class="k">switch</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">err</span><span class="o">.</span><span class="p">(</span><span class="k">type</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">case</span> <span class="n">auth</span><span class="o">.</span><span class="n">Challenge</span><span class="o">:</span>
-            <span class="c">//当app.accessController.Authorized返回auth.Challenge类型的错误时</span>
-            <span class="c">//将设置WWW-Auth头,告知client需要进行鉴权验证</span>
+            <span class="c">// 当 app.accessController.Authorized 返回 auth.Challenge 类型的错误时</span>
+            <span class="c">// 将设置 WWW-Auth 头, 告知 client 需要进行鉴权验证</span>
             <span class="n">err</span><span class="o">.</span><span class="n">SetHeaders</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-            <span class="c">//返回错误信息</span>
+            <span class="c">// 返回错误信息</span>
             <span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">errcode</span><span class="o">.</span><span class="n">ServeJSON</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">errcode</span><span class="o">.</span><span class="n">ErrorCodeUnauthorized</span><span class="o">.</span><span class="n">WithDetail</span><span class="p">(</span><span class="n">accessRecords</span><span class="p">));</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
                 <span class="n">ctxu</span><span class="o">.</span><span class="n">GetLogger</span><span class="p">(</span><span class="n">context</span><span class="p">)</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"error serving error json: %v (from %v)"</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">Errors</span><span class="p">)</span>
             <span class="p">}</span>
         <span class="k">default</span><span class="o">:</span>
-            <span class="c">//其他情况返回400错误</span>
+            <span class="c">// 其他情况返回 400 错误</span>
             <span class="n">ctxu</span><span class="o">.</span><span class="n">GetLogger</span><span class="p">(</span><span class="n">context</span><span class="p">)</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"error checking authorization: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="n">w</span><span class="o">.</span><span class="n">WriteHeader</span><span class="p">(</span><span class="n">http</span><span class="o">.</span><span class="n">StatusBadRequest</span><span class="p">)</span>
         <span class="p">}</span>
@@ -306,71 +306,71 @@ branch：release/2.5</p>
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>在配置文件中可以指定访问控制器(AccessController)的类型。目前存在三种类型的鉴权验证类型：</p>
+<p>在配置文件中可以指定访问控制器 (AccessController) 的类型。目前存在三种类型的鉴权验证类型：</p>
 <ol>
   <li>htpasswd：/registry/auth/htpasswd.go#96</li>
   <li>silly：/registry/auth/silly.go#96</li>
   <li>token：/registry/auth/token.go#267</li>
 </ol>
 
-<h4 id="3请求鉴权过程描述">3.请求鉴权过程描述</h4>
+<h4 id="3-请求鉴权过程描述">3. 请求鉴权过程描述</h4>
 <ol>
-  <li>当新请求到达时，由registry.server.Handler处理</li>
-  <li>请求经过registry.app外层的handler后进入app.ServeHTTP</li>
-  <li>app.ServeHTTP调用app.router.ServeHTTP</li>
-  <li>app.router根据路由查找到相应的handler,该handler被app.dispatcher包装过</li>
-  <li>执行app.dispatcher内部的包装方法,然后使用app.authorized进行验证</li>
-  <li>app.authorized会调用配置中指定的accessController的Authorized方法进行验证</li>
+  <li>当新请求到达时，由 registry.server.Handler 处理</li>
+  <li>请求经过 registry.app 外层的 handler 后进入 app.ServeHTTP</li>
+  <li>app.ServeHTTP 调用 app.router.ServeHTTP</li>
+  <li>app.router 根据路由查找到相应的 handler, 该 handler 被 app.dispatcher 包装过</li>
+  <li>执行 app.dispatcher 内部的包装方法, 然后使用 app.authorized 进行验证</li>
+  <li>app.authorized 会调用配置中指定的 accessController 的 Authorized 方法进行验证</li>
   <li>根据验证结果确定是直接返回错误还是继续执行</li>
 </ol>
 
-<h4 id="4token类型鉴权分析">4.token类型鉴权分析</h4>
+<h4 id="4token-类型鉴权分析">4.token 类型鉴权分析</h4>
 <h5 id="tokenaccesscontrollerregistryauthtokengo215">token.accessController：/registry/auth/token.go#215</h5>
 <div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">ac</span> <span class="o">*</span><span class="n">accessController</span><span class="p">)</span> <span class="n">Authorized</span><span class="p">(</span><span class="n">ctx</span> <span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">accessItems</span> <span class="o">...</span><span class="n">auth</span><span class="o">.</span><span class="n">Access</span><span class="p">)</span> <span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c">//创建Challenge类型的错误</span>
-    <span class="c">//该Challenge返回的WWW-Auth头字符串格式如下</span>
+    <span class="c">// 创建 Challenge 类型的错误</span>
+    <span class="c">// 该 Challenge 返回的 WWW-Auth 头字符串格式如下</span>
     <span class="c">//Bearer realm=%q,service=%q[,scope=%q[,error=%q]]</span>
     <span class="n">challenge</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">authChallenge</span><span class="p">{</span>
-        <span class="n">realm</span><span class="o">:</span>     <span class="n">ac</span><span class="o">.</span><span class="n">realm</span><span class="p">,</span><span class="c">//一个url,用于告知client应该去哪里获取鉴权的Token</span>
+        <span class="n">realm</span><span class="o">:</span>     <span class="n">ac</span><span class="o">.</span><span class="n">realm</span><span class="p">,</span><span class="c">// 一个 url, 用于告知 client 应该去哪里获取鉴权的 Token</span>
         <span class="n">service</span><span class="o">:</span>   <span class="n">ac</span><span class="o">.</span><span class="n">service</span><span class="p">,</span>
         <span class="n">accessSet</span><span class="o">:</span> <span class="n">newAccessSet</span><span class="p">(</span><span class="n">accessItems</span><span class="o">...</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="c">//从context中获取request实例</span>
+    <span class="c">// 从 context 中获取 request 实例</span>
     <span class="n">req</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">context</span><span class="o">.</span><span class="n">GetRequest</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
         <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">err</span>
     <span class="p">}</span>
-    <span class="c">//从请求头中获取Authorization并根据空格分割</span>
+    <span class="c">// 从请求头中获取 Authorization 并根据空格分割</span>
     <span class="n">parts</span> <span class="o">:=</span> <span class="n">strings</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">Header</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s">"Authorization"</span><span class="p">),</span> <span class="s">" "</span><span class="p">)</span>
-    <span class="c">//Authorization token格式验证</span>
+    <span class="c">//Authorization token 格式验证</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">!=</span> <span class="m">2</span> <span class="o">||</span> <span class="n">strings</span><span class="o">.</span><span class="n">ToLower</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="m">0</span><span class="p">])</span> <span class="o">!=</span> <span class="s">"bearer"</span> <span class="p">{</span>
         <span class="n">challenge</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">ErrTokenRequired</span>
         <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">challenge</span>
     <span class="p">}</span>
-    <span class="c">//获取Authorization的token部分</span>
+    <span class="c">// 获取 Authorization 的 token 部分</span>
     <span class="n">rawToken</span> <span class="o">:=</span> <span class="n">parts</span><span class="p">[</span><span class="m">1</span><span class="p">]</span>
 
-    <span class="c">//创建Token实例</span>
+    <span class="c">// 创建 Token 实例</span>
     <span class="n">token</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">NewToken</span><span class="p">(</span><span class="n">rawToken</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
         <span class="n">challenge</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">err</span>
         <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">challenge</span>
     <span class="p">}</span>
-    <span class="c">//设定验证选项</span>
+    <span class="c">// 设定验证选项</span>
     <span class="n">verifyOpts</span> <span class="o">:=</span> <span class="n">VerifyOptions</span><span class="p">{</span>
         <span class="n">TrustedIssuers</span><span class="o">:</span>    <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="n">ac</span><span class="o">.</span><span class="n">issuer</span><span class="p">},</span>
         <span class="n">AcceptedAudiences</span><span class="o">:</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="n">ac</span><span class="o">.</span><span class="n">service</span><span class="p">},</span>
-        <span class="n">Roots</span><span class="o">:</span>             <span class="n">ac</span><span class="o">.</span><span class="n">rootCerts</span><span class="p">,</span><span class="c">//根证书</span>
-        <span class="n">TrustedKeys</span><span class="o">:</span>       <span class="n">ac</span><span class="o">.</span><span class="n">trustedKeys</span><span class="p">,</span><span class="c">//可信密钥</span>
+        <span class="n">Roots</span><span class="o">:</span>             <span class="n">ac</span><span class="o">.</span><span class="n">rootCerts</span><span class="p">,</span><span class="c">// 根证书</span>
+        <span class="n">TrustedKeys</span><span class="o">:</span>       <span class="n">ac</span><span class="o">.</span><span class="n">trustedKeys</span><span class="p">,</span><span class="c">// 可信密钥</span>
     <span class="p">}</span>
-    <span class="c">//对Token进行验证,判断token是否是正确的</span>
+    <span class="c">// 对 Token 进行验证, 判断 token 是否是正确的</span>
     <span class="k">if</span> <span class="n">err</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">Verify</span><span class="p">(</span><span class="n">verifyOpts</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
         <span class="n">challenge</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">err</span>
         <span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="n">challenge</span>
     <span class="p">}</span>
-    <span class="c">//从token中获取可以访问的权限范围</span>
+    <span class="c">// 从 token 中获取可以访问的权限范围</span>
     <span class="n">accessSet</span> <span class="o">:=</span> <span class="n">token</span><span class="o">.</span><span class="n">accessSet</span><span class="p">()</span>
-    <span class="c">//检查请求的权限是否符合要求</span>
+    <span class="c">// 检查请求的权限是否符合要求</span>
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">access</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">accessItems</span> <span class="p">{</span>
         <span class="k">if</span> <span class="o">!</span><span class="n">accessSet</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">access</span><span class="p">)</span> <span class="p">{</span>
             <span class="n">challenge</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">ErrInsufficientScope</span>
@@ -384,7 +384,7 @@ branch：release/2.5</p>
 
       <div class="page-footer">
         <div class="page-share">
-          <a href="https://twitter.com/intent/tweet?text=Registry鉴权验证分析&url=/Docker-Registry-Authentication/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://twitter.com/intent/tweet?text=Docker Registry 鉴权验证分析&url=/Docker-Registry-Authentication/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
           <a href="https://facebook.com/sharer.php?u=/Docker-Registry-Authentication/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
           <a href="https://plus.google.com/share?url=/Docker-Registry-Authentication/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
         </div>
