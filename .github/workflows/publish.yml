@@ -3,37 +3,44 @@ on:
   push:
     branches:
     - master
-    - theme
-    paths:
-    - '*'
-    - '!.github/workflows/*'
-    - '.github/workflows/publish.yml'
 jobs:
   publish:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout project
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.3
+        bundler-cache: true
     - name: Build site
+      env:
+        JEKYLL_ENV: "production"
       run: |
-        mkdir -p ../project/_posts
-        git checkout -b theme origin/theme
-        cp -r ./* ../project/
-        git checkout master
-        cp ./README.md ../project/
-        cp -r -n -v ./assets/* ../project/assets/
-        find . -type 'f' -name '*.md' ! -path './README.md' ! -path './.git/*' ! -path './.github/*' | xargs -I{} cp {} ../project/_posts/
-        cd ../project/_posts
-        sed -i 's/](\.\.\/assets\//]({{site.baseurl}}\/assets\//g' *.md
-        ls |xargs -I{} bash -c 'X={}; mv $X "${X%.md}.markdown"'
-        cd ..
-        docker pull kdada/jekyll-builder:base
-        docker run --rm -v $(pwd):/project kdada/jekyll-builder:base
+        # sudo apt-get -y install ruby-full build-essential zlib1g-dev git
+        git config --global user.email "me@imkira.com"
+        git config --global user.name "Wei Guo"
+        gem install jekyll bundler
+        git clone https://github.com/cotes2020/jekyll-theme-chirpy --branch v7.3.1 --depth=1 ../jekyll-theme
+        cd ../jekyll-theme
+        bash tools/init.sh
+        cd -
+        cp ./ABOUT.md ../jekyll-theme/_tabs/about.md
+        cp -r -v ./assets/* ../jekyll-theme/assets/
+        find . -type 'f' -name '*.md' ! -path './about.md' ! -path './README.md' ! -path './.git/*' ! -path './.github/*' | xargs -I{} cp {} ../jekyll-theme/_posts/
+        cd ../jekyll-theme
+        mv ./assets/_config.yml ./_config.yml
+        mv ./assets/contact.yml ./_data/contact.yml
+        bundle install
+        bundle exec jekyll b
     - name: Commit site to gh-pages
       run: |
-        git checkout -b ph-pages origin/gh-pages
+        git checkout -b gh-pages origin/gh-pages
         find . -maxdepth 1 -type 'd' ! -path './.git' ! -path . | xargs rm -rf
-        cp -r ../project/_site/* ./
+        cp -r ../jekyll-theme/_site/* ./
         [[ -z $(git status -s) ]] && exit 0
         git config --global user.email "me@imkira.com"
         git config --global user.name "Wei Guo"
