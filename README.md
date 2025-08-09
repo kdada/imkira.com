@@ -7,10 +7,14 @@
 - [Docker Registry manifest 分析](./Docker/2016-10-20-Docker-Registery-Manifest.md)
 - [Docker Registry 鉴权验证分析](./Docker/2016-10-18-Docker-Registry-Authentication.md)
 
+## Godot
+
+- [Godot 开发鸿蒙游戏教程](./Godot/2025-08-06-Godot-HarmonyOS-Port.md)
+
 ## Golang
 
-- [Golang 的启动过程分析](./Golang/2017-09-30-Golang-Startup-Process.md)
 - [Golang runtime.getg() 的实现](./Golang/2017-09-30-Golang-runtime-getg.md)
+- [Golang 的启动过程分析](./Golang/2017-09-30-Golang-Startup-Process.md)
 - [Golang 中不使用分代和紧凑型 GC 的原因](./Golang/2017-05-18-Golang-GC-Discuss.md)
 - [Go runtime 调度器](./Golang/2016-10-08-Go-Runtime-Scheduler.md)
 

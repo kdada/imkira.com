@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Godot 开发鸿蒙游戏教程 - Kira's Blog</title>
+
+  <!-- Edit site and author settings in `_config.yml` to make the social details your own -->
+
+    <meta content="Kira's Blog" property="og:site_name">
+  
+    <meta content="Godot 开发鸿蒙游戏教程" property="og:title">
+  
+  
+    <meta content="article" property="og:type">
+  
+  
+    <meta content="Godot 适配 HarmonyOS/OpenHarmony 进展，Godot 开发鸿蒙游戏教程" property="og:description">
+  
+  
+    <meta content="https://imkira.com/Godot-HarmonyOS-Port/" property="og:url">
+  
+  
+    <meta content="2025-08-06T04:00:00+00:00" property="article:published_time">
+    <meta content="https://imkira.com/about/" property="article:author">
+  
+  
+    <meta content="https://imkira.com/assets/img/avatar.jpg" property="og:image">
+  
+  
+    
+  
+  
+    
+    <meta content="Godot" property="article:tag">
+    
+  
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@">
+    <meta name="twitter:creator" content="@">
+  
+    <meta name="twitter:title" content="Godot 开发鸿蒙游戏教程">
+  
+  
+    <meta name="twitter:url" content="https://imkira.com/Godot-HarmonyOS-Port/">
+  
+  
+    <meta name="twitter:description" content="Godot 适配 HarmonyOS/OpenHarmony 进展，Godot 开发鸿蒙游戏教程">
+  
+  
+    <meta name="twitter:image:src" content="https://imkira.com/assets/img/avatar.jpg">
+  
+
+	<meta name="description" content="Godot 适配 HarmonyOS/OpenHarmony 进展，Godot 开发鸿蒙游戏教程">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:image" content="">
+	<link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/assets/img/favicon/apple-touch-icon.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicon/apple-touch-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicon/apple-touch-icon-144x144.png">
+	<!-- Chrome, Firefox OS and Opera -->
+	<meta name="theme-color" content="#263959">
+	<!-- Windows Phone -->
+	<meta name="msapplication-navbutton-color" content="#263959">
+	<!-- iOS Safari -->
+	<meta name="apple-mobile-web-app-status-bar-style" content="#263959">
+	<!-- Google Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=PT+Serif:400,700" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="/assets/fonts/font-awesome/css/font-awesome.min.css">
+	<!-- Styles -->
+	<link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <aside class="sidebar">
+  <header>
+    <div class="about">
+      <div class="cover-author-image">
+        <a href="/"><img src="/assets/img/avatar.jpg" alt="Wei Guo"></a>
+      </div>
+      <div class="author-name">Wei Guo</div>
+      <p>Author of Nirvana API Framewark. Focus on CloudNative technologies.</p>
+    </div>
+  </header> <!-- End Header -->
+  <footer>
+    <section class="contact">
+      <h3 class="contact-title">Contact me</h3>
+      <ul>
+        
+          <li><a href="https://twitter.com/artemsheludko_" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
+        
+        
+          <li><a href="https://facebook.com/" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="github"><a href="http://github.com/kdada" target="_blank"><i class="fa fa-github"></i></a></li>
+        
+        
+          <li class="linkedin"><a href="https://in.linkedin.com/" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
+        
+        
+          <li class="email"><a href="mailto:me@imkira.com"><i class="fa fa-envelope-o"></i></a></li>
+        
+      </ul>
+    </section> <!-- End Section Contact -->
+    <div class="copyright">
+      <p>2025 &copy; Wei Guo</p>
+    </div>
+  </footer> <!-- End Footer -->
+</aside> <!-- End Sidebar -->
+<div class="content-box clearfix">
+  <article class="article-page">
+  <div class="page-content">
+    
+    
+    <div class="wrap-content">
+      <header class="header-page">
+        <h1 class="page-title">Godot 开发鸿蒙游戏教程</h1>
+        <div class="page-date"><span>2025, Aug 06&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+      </header>
+      <h1 id="godot-开发鸿蒙游戏教程">Godot 开发鸿蒙游戏教程</h1>
+
+<h2 id="概述">概述</h2>
+<p>Godot 引擎已经完成鸿蒙系统的适配，支持 HarmonyOS 5 和 OpenHarmonry 5。</p>
+
+<p>教程：https://www.bilibili.com/video/BV1DH4dzfEiv/</p>
+
+<p>已支持的特性列表：</p>
+
+<ul>
+  <li>Render
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Vulkan</li>
+    </ul>
+  </li>
+  <li>Input
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Touch Event</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Text Input</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Mouse Event</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Keyboard Event</li>
+    </ul>
+  </li>
+  <li>Audio
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Renderer</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Capturer</li>
+    </ul>
+  </li>
+  <li>DispayServer
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Portrait Layout</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Landscape Layout</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Window Resize</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />IME Control</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Clipboard</li>
+    </ul>
+  </li>
+  <li>Scripts
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />GDScript</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />C# (Experimental)</li>
+    </ul>
+  </li>
+  <li>Network
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />TCP/IP stack</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />HTTP</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />HTTPS (TLS)</li>
+    </ul>
+  </li>
+  <li>Export
+    <ul class="task-list">
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Export Project</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Run</li>
+      <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Debug</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="前置准备">前置准备</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>内容</th>
+      <th>说明</th>
+      <th>下载地址</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Godot 源码（v4.4.1）</td>
+      <td>1. 编译 Godot 导出模板<br />2. 编译 Godot Editor</td>
+      <td>https://github.com/kdada/godot.git</td>
+    </tr>
+    <tr>
+      <td>HarmonyOS 编译工具链<br />（DevEco Studio/Command Line Tools for HarmonyOS）</td>
+      <td>1. 编译 Godot 导出模板<br />2. 编译 App<br />3. 调试 App</td>
+      <td>https://developer.huawei.com/consumer/cn/download/</td>
+    </tr>
+    <tr>
+      <td>OpenHarmony SDK（可选）</td>
+      <td>1. 编译 Godot 导出模板</td>
+      <td>https://gitee.com/openharmony/docs/blob/master/en/release-notes/OpenHarmony-v5.1.0-release.md#acquiring-source-code-from-mirrors</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>说明：鸿蒙的编译工具链中已经包含了 OpenHarmony SDK，不需要额外下载。</p>
+
+<h2 id="编译流程">编译流程</h2>
+
+<ol>
+  <li>下载 HarmonyOS 编译工具链：https://developer.huawei.com/consumer/cn/download/
+    <ul>
+      <li>如果下载 DevEco Studio，直接安装即可</li>
+      <li>如果下载 Command Line Tools for HarmonyOS，解压到任意路径即可</li>
+    </ul>
+  </li>
+  <li>下载 Godot 源码
+    <ul>
+      <li><code class="highlighter-rouge">git clone https://github.com/kdada/godot</code></li>
+    </ul>
+  </li>
+  <li>编译 Godot 导出模板
+    <ul>
+      <li><code class="highlighter-rouge">scons platform=openharmony target=template_debug generate_bundle=yes module_mono_enabled=yes debug_symbols=yes OPENHARMONY_SDK_PATH="C:\Users\Kira\Downloads\ohos-sdk-windows_linux-public\ohos-sdk\windows"</code></li>
+      <li>OPENHARMONY_SDK_PATH 路径：
+        <ul>
+          <li>DevEco Studio: <code class="highlighter-rouge">C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony</code></li>
+          <li>Command Line Tools for HarmonyOS: <code class="highlighter-rouge">{解压路径}\command-line-tools\sdk\default\openharmony</code></li>
+          <li>OpenHarmony SDK: <code class="highlighter-rouge">{解压路径}\ohos-sdk\windows</code></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>编译 Godot Editor
+    <ul>
+      <li><code class="highlighter-rouge">scons platform=windows target=editor module_mono_enabled=yes debug_symbols=yes</code></li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="开发和调试">开发和调试</h2>
+
+<ol>
+  <li>配置 Openharmony 工具链路径：【打开 Godot Editor】&gt;【编辑器设置】&gt;【导出】&gt;【Openharmony】&gt;【Openharmony Tool Path】</li>
+  <li>将鸿蒙手机用 USB 线连接到电脑</li>
+  <li>运行游戏</li>
+  <li>使用 Godot 调试窗口进行调试</li>
+</ol>
+
+<h2 id="支持-c-脚本需要额外的工作">支持 C# 脚本需要额外的工作</h2>
+<ol>
+  <li>下载 OpenHarmony 的 dotnet 工具链
+    <ul>
+      <li>OpenHarmony.NET.Runtime: https://github.com/OpenHarmony-NET/OpenHarmony.NET.Runtime.git</li>
+      <li>PublishAotCross: https://github.com/OpenHarmony-NET/PublishAotCross.git</li>
+      <li>zig: https://ziglang.org/download/</li>
+    </ul>
+  </li>
+  <li>添加系统环境变量，将路径添加到环境变量的 PATH 中
+    <ol>
+      <li>llvm 目录：C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\llvm\bin</li>
+      <li>zig 目录：C:\Users\Kira\Downloads\zig-x86_64-windows-0.15.0-dev.936+fc2c1883b</li>
+    </ol>
+  </li>
+  <li>在 Godot 项目中添加 dotnet targets
+    <ol>
+      <li><code class="highlighter-rouge">&lt;Import Project="../OpenHarmony.NET.Runtime/runtime.targets" /&gt;</code></li>
+      <li><code class="highlighter-rouge">&lt;Import Project="../PublishAotCross/package/OpenHarmony.NET.PublishAotCross.targets" /&gt;</code></li>
+    </ol>
+  </li>
+</ol>
+
+<h2 id="社区-proposal--pr">社区 Proposal &amp;&amp; PR</h2>
+<ul>
+  <li>Proposal: https://github.com/godotengine/godot-proposals/issues/12734</li>
+  <li>PR: https://github.com/godotengine/godot/pull/108553</li>
+</ul>
+
+      <div class="page-footer">
+        <div class="page-share">
+          <a href="https://twitter.com/intent/tweet?text=Godot 开发鸿蒙游戏教程&url=https://imkira.com/Godot-HarmonyOS-Port/" title="Share on Twitter" rel="nofollow" target="_blank">Twitter</a>
+          <a href="https://facebook.com/sharer.php?u=https://imkira.com/Godot-HarmonyOS-Port/" title="Share on Facebook" rel="nofollow" target="_blank">Facebook</a>
+          <a href="https://plus.google.com/share?url=https://imkira.com/Godot-HarmonyOS-Port/" title="Share on Google+" rel="nofollow" target="_blank">Google+</a>
+        </div>
+        <div class="page-tag">
+          
+            <a href="/tags#Godot" class="tag">&#35; Godot</a>
+          
+        </div>
+      </div>
+      <section class="comment-area">
+  <div class="comment-wrapper">
+    
+  </div>
+</section> <!-- End Comment Area -->
+
+    </div> <!-- End Wrap Content -->
+  </div> <!-- End Page Content -->
+</article> <!-- End Article Page -->
+
+</div>
+
+  </div>
+  
+  <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '', 'auto');
+  ga('send', 'pageview');
+</script> <!-- End Analytics -->
+
+</body>
+</html>
